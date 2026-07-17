@@ -7,7 +7,7 @@ import { Patient } from './usePatients';
  * Búsqueda server-side de pacientes con debounce.
  * Ideal para dropdowns/filtros con miles de registros.
  */
-export const usePatientSearch = (term: string, limit = 50, debounceMs = 250) => {
+export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
   const [debounced, setDebounced] = useState(term);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export const usePatientSearch = (term: string, limit = 50, debounceMs = 250) => 
       const isNumeric = /^\d+$/.test(q);
       let query = supabase
         .from('pacientes')
-        .select('*, obra_social:obras_sociales(nombre)')
+        .select('id, nombre, apellido, dni, activo, obra_social:obras_sociales(nombre)')
         .eq('activo', true)
         .limit(limit)
         .order('apellido');
@@ -32,9 +32,8 @@ export const usePatientSearch = (term: string, limit = 50, debounceMs = 250) => 
       if (isNumeric) {
         query = query.ilike('dni', `${q}%`);
       } else {
-        query = query.or(
-          `nombre.ilike.%${q}%,apellido.ilike.%${q}%,dni.ilike.${q}%`
-        );
+        const escaped = q.replace(/[%_,]/g, '');
+        query = query.or(`nombre.ilike.%${escaped}%,apellido.ilike.%${escaped}%,dni.ilike.${escaped}%`);
       }
 
       const { data, error } = await query;

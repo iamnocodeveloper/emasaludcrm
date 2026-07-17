@@ -1,11 +1,12 @@
 
-import React, { useState, useMemo, useDeferredValue } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Patient } from '@/hooks/usePatients';
+import { usePatientSearch } from '@/hooks/usePatientSearch';
 
 interface PatientSelectorProps {
   patients: Patient[];
@@ -14,10 +15,7 @@ interface PatientSelectorProps {
   placeholder?: string;
 }
 
-const MAX_RESULTS = 50;
-
-const normalize = (s: string) =>
-  (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const MAX_RESULTS = 5;
 
 const PatientSelector: React.FC<PatientSelectorProps> = ({
   patients,
@@ -27,26 +25,17 @@ const PatientSelector: React.FC<PatientSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const deferredSearch = useDeferredValue(search);
+  const { data: remoteResults = [], isFetching } = usePatientSearch(search, MAX_RESULTS);
 
   const selectedPatient = useMemo(
-    () => patients.find(p => p.id === selectedPatientId),
-    [patients, selectedPatientId]
+    () => remoteResults.find(p => p.id === selectedPatientId) || patients.find(p => p.id === selectedPatientId),
+    [remoteResults, patients, selectedPatientId]
   );
 
   const results = useMemo(() => {
-    if (!open) return [];
-    const q = normalize(deferredSearch).trim();
-    if (!q) return patients.slice(0, MAX_RESULTS);
-    const parts = q.split(/\s+/).filter(Boolean);
-    const out: Patient[] = [];
-    for (let i = 0; i < patients.length && out.length < MAX_RESULTS; i++) {
-      const p = patients[i];
-      const hay = normalize(`${p.nombre} ${p.apellido} ${p.dni}`);
-      if (parts.every(part => hay.includes(part))) out.push(p);
-    }
-    return out;
-  }, [patients, deferredSearch, open]);
+    if (!open || !search.trim()) return [];
+    return remoteResults;
+  }, [remoteResults, search, open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -78,11 +67,12 @@ const PatientSelector: React.FC<PatientSelectorProps> = ({
           />
           <CommandList className="max-h-[300px]">
             <CommandEmpty>
-              {deferredSearch.trim()
+              {search.trim()
                 ? 'No se encontraron pacientes.'
                 : 'Escribí para buscar…'}
             </CommandEmpty>
             <CommandGroup>
+              {isFetching && <div className="px-3 py-2 text-xs text-muted-foreground">Buscando…</div>}
               {results.map((patient) => (
                 <CommandItem
                   key={patient.id}

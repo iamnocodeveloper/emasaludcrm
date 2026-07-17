@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateTurno, useUpdateTurno, type Turno, type TurnoFormData } from '@/hooks/useTurnos';
-import { usePatients } from '@/hooks/usePatients';
+import { usePatientSearch } from '@/hooks/usePatientSearch';
 import { useMedicos } from '@/hooks/useMedicos';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,7 +30,7 @@ const TurnoForm = ({ turno, onClose }: TurnoFormProps) => {
   const [patientSearch, setPatientSearch] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
-  const { data: pacientes, isLoading: loadingPacientes } = usePatients();
+  const { data: pacientes = [], isFetching: loadingPacientes } = usePatientSearch(patientSearch, 5);
   const { data: medicos, isLoading: loadingMedicos } = useMedicos();
 
   const createMutation = useCreateTurno();
@@ -40,17 +40,7 @@ const TurnoForm = ({ turno, onClose }: TurnoFormProps) => {
   const selectedPatient = pacientes?.find(p => p.id === formData.paciente_id);
 
   // Filter patients by search
-  const filteredPatients = useMemo(() => {
-    if (!pacientes || !patientSearch.trim()) return [];
-    const s = patientSearch.toLowerCase();
-    return pacientes.filter(p =>
-      (p.nombre || '').toLowerCase().includes(s) ||
-      (p.apellido || '').toLowerCase().includes(s) ||
-      (p.dni || '').toLowerCase().includes(s) ||
-      `${p.nombre} ${p.apellido}`.toLowerCase().includes(s) ||
-      `${p.apellido} ${p.nombre}`.toLowerCase().includes(s)
-    ).slice(0, 10);
-  }, [pacientes, patientSearch]);
+  const filteredPatients = patientSearch.trim().length >= 2 ? pacientes : [];
 
   // Init search text if editing
   React.useEffect(() => {

@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAutorizaciones, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion } from '@/hooks/useAutorizaciones';
-import { usePatients } from '@/hooks/usePatients';
+import { usePatientSearch } from '@/hooks/usePatientSearch';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import AutorizacionForm from './AutorizacionForm';
 import AutorizacionPDF from './AutorizacionPDF';
@@ -37,7 +37,7 @@ const AutorizacionManagement = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
 
   const { data: autorizaciones, isLoading } = useAutorizaciones();
-  const { data: patients } = usePatients();
+  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 5);
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
   const deleteAutorizacion = useDeleteAutorizacion();
@@ -47,15 +47,7 @@ const AutorizacionManagement = () => {
   const selectedPatient = patients?.find(p => p.id === selectedPatientId);
 
   // Filter patients by search
-  const filteredPatients = patients?.filter(p => {
-    if (!patientSearchTerm.trim()) return false;
-    const s = patientSearchTerm.toLowerCase();
-    return (p.dni || '').toLowerCase().includes(s) ||
-           (p.nombre || '').toLowerCase().includes(s) ||
-           (p.apellido || '').toLowerCase().includes(s) ||
-           `${p.nombre} ${p.apellido}`.toLowerCase().includes(s) ||
-           `${p.apellido} ${p.nombre}`.toLowerCase().includes(s);
-  })?.slice(0, 10) || [];
+  const filteredPatients = patientSearchTerm.trim().length >= 2 ? patients : [];
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {

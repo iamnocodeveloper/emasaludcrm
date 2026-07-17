@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, X, Search } from 'lucide-react';
-import { usePatients } from '@/hooks/usePatients';
 import { useMedicos } from '@/hooks/useMedicos';
 import { useObrasSociales } from '@/hooks/useObrasSociales';
 import { AutorizacionFormData, Autorizacion } from '@/hooks/useAutorizaciones';
@@ -129,7 +128,6 @@ const AutorizacionForm: React.FC<AutorizacionFormProps> = ({
     }
   });
 
-  const { data: patients } = usePatients();
   const { data: medicos } = useMedicos();
   const { data: obrasSociales } = useObrasSociales();
 
@@ -195,7 +193,7 @@ const AutorizacionForm: React.FC<AutorizacionFormProps> = ({
             <div className="space-y-2">
               <Label>Paciente *</Label>
               <PatientSelector
-                patients={patients || []}
+                patients={[]}
                 selectedPatientId={watchedValues.paciente_id}
                 onSelect={(patientId) => setValue('paciente_id', patientId)}
                 placeholder="Buscar y seleccionar paciente..."
