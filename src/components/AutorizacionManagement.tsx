@@ -416,6 +416,14 @@ const AutorizacionManagement = () => {
                 {selectedPatientId ? 'Este paciente no tiene autorizaciones.' : 'No se encontraron autorizaciones.'}
               </div>
             )}
+            {!selectedPatientId && hasNextPage && (
+              <div className="p-4 flex justify-center">
+                <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? 'Cargando...' : `Cargar más (${AUTORIZACIONES_PAGE_SIZE})`}
+                </Button>
+              </div>
+            )}
+
           </CardContent>
         </Card>
       )}
