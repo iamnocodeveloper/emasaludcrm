@@ -203,7 +203,7 @@ const Sidebar = ({ activeSection, onSectionChange, isCollapsed, onToggleCollapse
           {!isCollapsed && <span className="ml-2">Cerrar Sesión</span>}
         </Button>
         {!isCollapsed && (
-          <p className="text-xs text-slate-500 text-center mt-3">v1.503-03-26</p>
+          <p className="text-xs text-slate-500 text-center mt-3">v1.505-20-07</p>
         )}
       </div>
     </div>
