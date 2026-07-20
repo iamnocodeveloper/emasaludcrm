@@ -37,8 +37,10 @@ const AutorizacionManagement = () => {
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
 
-  const { data: autorizaciones, isLoading } = useAutorizaciones();
-  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 5);
+  const { data: autorizacionesPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
+  const autorizaciones = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
+  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 8, 400);
+
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
   const deleteAutorizacion = useDeleteAutorizacion();
