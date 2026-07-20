@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAutorizaciones, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion } from '@/hooks/useAutorizaciones';
+import { useAutorizacionesInfinite, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion, AUTORIZACIONES_PAGE_SIZE } from '@/hooks/useAutorizaciones';
 import { usePatientSearch } from '@/hooks/usePatientSearch';
+
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import AutorizacionForm from './AutorizacionForm';
 import AutorizacionPDF from './AutorizacionPDF';
