@@ -50,7 +50,7 @@ const AutorizacionManagement = () => {
   const selectedPatient = patients?.find(p => p.id === selectedPatientId);
 
   // Filter patients by search
-  const filteredPatients = patientSearchTerm.trim().length >= 2 ? patients : [];
+  const filteredPatients = patientSearchTerm.trim().length >= 3 ? patients : [];
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
