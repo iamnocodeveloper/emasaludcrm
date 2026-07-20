@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAutorizaciones, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion } from '@/hooks/useAutorizaciones';
+import { useAutorizacionesInfinite, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion, AUTORIZACIONES_PAGE_SIZE } from '@/hooks/useAutorizaciones';
 import { usePatientSearch } from '@/hooks/usePatientSearch';
+
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import AutorizacionForm from './AutorizacionForm';
 import AutorizacionPDF from './AutorizacionPDF';
@@ -36,8 +37,10 @@ const AutorizacionManagement = () => {
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
 
-  const { data: autorizaciones, isLoading } = useAutorizaciones();
-  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 5);
+  const { data: autorizacionesPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
+  const autorizaciones = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
+  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 8, 400);
+
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
   const deleteAutorizacion = useDeleteAutorizacion();
@@ -47,7 +50,7 @@ const AutorizacionManagement = () => {
   const selectedPatient = patients?.find(p => p.id === selectedPatientId);
 
   // Filter patients by search
-  const filteredPatients = patientSearchTerm.trim().length >= 2 ? patients : [];
+  const filteredPatients = patientSearchTerm.trim().length >= 3 ? patients : [];
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
@@ -413,6 +416,14 @@ const AutorizacionManagement = () => {
                 {selectedPatientId ? 'Este paciente no tiene autorizaciones.' : 'No se encontraron autorizaciones.'}
               </div>
             )}
+            {!selectedPatientId && hasNextPage && (
+              <div className="p-4 flex justify-center">
+                <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? 'Cargando...' : `Cargar más (${AUTORIZACIONES_PAGE_SIZE})`}
+                </Button>
+              </div>
+            )}
+
           </CardContent>
         </Card>
       )}
