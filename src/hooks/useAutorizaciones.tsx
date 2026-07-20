@@ -99,6 +99,62 @@ export const useAutorizaciones = () => {
   });
 };
 
+export const AUTORIZACIONES_PAGE_SIZE = 20;
+
+export const useAutorizacionesInfinite = (pageSize = AUTORIZACIONES_PAGE_SIZE) => {
+  return useInfiniteQuery({
+    queryKey: ['autorizaciones-infinite', pageSize],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
+      const from = (pageParam as number) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data: autorizaciones, error } = await supabase
+        .from('autorizaciones')
+        .select(`
+          *,
+          pacientes (nombre, apellido, dni),
+          medicos (nombre, apellido, matricula),
+          obras_sociales (nombre)
+        `)
+        .eq('activa', true)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      if (!autorizaciones || autorizaciones.length === 0) {
+        return { items: [] as Autorizacion[], nextPage: null as number | null };
+      }
+
+      const ids = autorizaciones.map(a => a.id);
+      const { data: allPrestaciones, error: prestError } = await supabase
+        .from('autorizacion_prestaciones')
+        .select('id, autorizacion_id, prestacion_codigo, prestacion_descripcion, cantidad, observaciones')
+        .in('autorizacion_id', ids)
+        .order('created_at', { ascending: true });
+
+      if (prestError) throw prestError;
+
+      const prestacionesMap = new Map<number, typeof allPrestaciones>();
+      for (const p of (allPrestaciones || [])) {
+        const list = prestacionesMap.get(p.autorizacion_id) || [];
+        list.push(p);
+        prestacionesMap.set(p.autorizacion_id, list);
+      }
+
+      const items = autorizaciones.map(a => ({
+        ...a,
+        prestaciones: prestacionesMap.get(a.id) || []
+      })) as Autorizacion[];
+
+      const nextPage = autorizaciones.length === pageSize ? (pageParam as number) + 1 : null;
+      return { items, nextPage };
+    },
+    getNextPageParam: (last) => last.nextPage,
+  });
+};
+
+
 export const useCreateAutorizacion = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
