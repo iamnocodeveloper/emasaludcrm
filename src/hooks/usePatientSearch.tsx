@@ -18,7 +18,8 @@ export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
   return useQuery({
     queryKey: ['patients-search', debounced, limit],
     enabled: debounced.trim().length >= 2,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const q = debounced.trim();
       const isNumeric = /^\d+$/.test(q);
@@ -29,11 +30,12 @@ export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
         .limit(limit)
         .order('apellido');
 
+      const escaped = q.replace(/[%_,]/g, '');
       if (isNumeric) {
-        query = query.ilike('dni', `${q}%`);
+        query = query.ilike('dni', `${escaped}%`);
       } else {
-        const escaped = q.replace(/[%_,]/g, '');
-        query = query.or(`nombre.ilike.%${escaped}%,apellido.ilike.%${escaped}%,dni.ilike.${escaped}%`);
+        // Prefix ilike on apellido/nombre — uses text_pattern_ops indexes
+        query = query.or(`apellido.ilike.${escaped}%,nombre.ilike.${escaped}%`);
       }
 
       const { data, error } = await query;
@@ -42,3 +44,4 @@ export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
     },
   });
 };
+
