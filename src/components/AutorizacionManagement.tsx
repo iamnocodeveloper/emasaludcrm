@@ -179,7 +179,10 @@ const AutorizacionManagement = () => {
               value={patientSearchTerm}
               onChange={(e) => {
                 setPatientSearchTerm(e.target.value);
-                if (!e.target.value.trim()) setSelectedPatientId(null);
+                if (!e.target.value.trim()) {
+                  setSelectedPatientId(null);
+                  setSelectedPatient(null);
+                }
               }}
             />
             {/* Patient suggestions dropdown */}
@@ -191,6 +194,7 @@ const AutorizacionManagement = () => {
                     className="w-full text-left px-4 py-2 hover:bg-accent text-sm flex justify-between items-center"
                     onClick={() => {
                       setSelectedPatientId(p.id);
+                      setSelectedPatient(p);
                       setPatientSearchTerm(`${p.apellido}, ${p.nombre} - DNI: ${p.dni}`);
                     }}
                   >
@@ -204,7 +208,7 @@ const AutorizacionManagement = () => {
 
           {selectedPatientId && (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setSelectedPatientId(null); setPatientSearchTerm(''); }}>
+              <Button variant="outline" size="sm" onClick={() => { setSelectedPatientId(null); setSelectedPatient(null); setPatientSearchTerm(''); }}>
                 Limpiar selección
               </Button>
             </div>
