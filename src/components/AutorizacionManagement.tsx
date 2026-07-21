@@ -36,10 +36,12 @@ const AutorizacionManagement = () => {
   // New: patient search first flow
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
   const { data: autorizacionesPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
   const autorizaciones = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
-  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 8, 400);
+  // Skip search while a patient is already selected to avoid unnecessary requests
+  const { data: patients = [] } = usePatientSearch(selectedPatientId ? '' : patientSearchTerm, 8, 400);
 
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
@@ -47,10 +49,8 @@ const AutorizacionManagement = () => {
   const createAutorizacion = useCreateAutorizacion();
   const { toast } = useToast();
 
-  const selectedPatient = patients?.find(p => p.id === selectedPatientId);
-
   // Filter patients by search
-  const filteredPatients = patientSearchTerm.trim().length >= 3 ? patients : [];
+  const filteredPatients = patientSearchTerm.trim().length >= 3 && !selectedPatientId ? patients : [];
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
@@ -179,7 +179,10 @@ const AutorizacionManagement = () => {
               value={patientSearchTerm}
               onChange={(e) => {
                 setPatientSearchTerm(e.target.value);
-                if (!e.target.value.trim()) setSelectedPatientId(null);
+                if (!e.target.value.trim()) {
+                  setSelectedPatientId(null);
+                  setSelectedPatient(null);
+                }
               }}
             />
             {/* Patient suggestions dropdown */}
@@ -191,6 +194,7 @@ const AutorizacionManagement = () => {
                     className="w-full text-left px-4 py-2 hover:bg-accent text-sm flex justify-between items-center"
                     onClick={() => {
                       setSelectedPatientId(p.id);
+                      setSelectedPatient(p);
                       setPatientSearchTerm(`${p.apellido}, ${p.nombre} - DNI: ${p.dni}`);
                     }}
                   >
@@ -204,7 +208,7 @@ const AutorizacionManagement = () => {
 
           {selectedPatientId && (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setSelectedPatientId(null); setPatientSearchTerm(''); }}>
+              <Button variant="outline" size="sm" onClick={() => { setSelectedPatientId(null); setSelectedPatient(null); setPatientSearchTerm(''); }}>
                 Limpiar selección
               </Button>
             </div>
