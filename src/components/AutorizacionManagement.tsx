@@ -36,10 +36,12 @@ const AutorizacionManagement = () => {
   // New: patient search first flow
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
   const { data: autorizacionesPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
   const autorizaciones = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
-  const { data: patients = [] } = usePatientSearch(patientSearchTerm, 8, 400);
+  // Skip search while a patient is already selected to avoid unnecessary requests
+  const { data: patients = [] } = usePatientSearch(selectedPatientId ? '' : patientSearchTerm, 8, 400);
 
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
@@ -47,10 +49,8 @@ const AutorizacionManagement = () => {
   const createAutorizacion = useCreateAutorizacion();
   const { toast } = useToast();
 
-  const selectedPatient = patients?.find(p => p.id === selectedPatientId);
-
   // Filter patients by search
-  const filteredPatients = patientSearchTerm.trim().length >= 3 ? patients : [];
+  const filteredPatients = patientSearchTerm.trim().length >= 3 && !selectedPatientId ? patients : [];
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
