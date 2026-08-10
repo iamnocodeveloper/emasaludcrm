@@ -323,6 +323,7 @@ export const useDeleteAutorizacion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       toast({
         title: "Autorización eliminada",
         description: "La autorización se ha eliminado exitosamente.",
