@@ -210,6 +210,7 @@ export const useCreateAutorizacion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       toast({
         title: "Autorización creada",
