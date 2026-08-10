@@ -183,7 +183,12 @@ export const useCreateAutorizacion = () => {
       }
 
       const { documento, prestaciones, ...dataToInsert } = autorizacionData;
-      const insertData = { ...dataToInsert, documento_url };
+      const { data: authData } = await supabase.auth.getUser();
+      const insertData = {
+        ...dataToInsert,
+        documento_url,
+        created_by_user_id: authData?.user?.id ?? null,
+      };
 
       const { data: autorizacion, error } = await supabase
         .from('autorizaciones')
