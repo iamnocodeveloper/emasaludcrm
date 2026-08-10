@@ -183,7 +183,12 @@ export const useCreateAutorizacion = () => {
       }
 
       const { documento, prestaciones, ...dataToInsert } = autorizacionData;
-      const insertData = { ...dataToInsert, documento_url };
+      const { data: authData } = await supabase.auth.getUser();
+      const insertData = {
+        ...dataToInsert,
+        documento_url,
+        created_by_user_id: authData?.user?.id ?? null,
+      };
 
       const { data: autorizacion, error } = await supabase
         .from('autorizaciones')
@@ -210,6 +215,7 @@ export const useCreateAutorizacion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       toast({
         title: "Autorización creada",
@@ -285,6 +291,7 @@ export const useUpdateAutorizacion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       toast({
         title: "Autorización actualizada",
@@ -321,6 +328,7 @@ export const useDeleteAutorizacion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       toast({
         title: "Autorización eliminada",
         description: "La autorización se ha eliminado exitosamente.",
