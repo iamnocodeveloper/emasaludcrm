@@ -26,7 +26,7 @@ export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
       const isNumeric = normalizedDigits.length > 0 && normalizedDigits.length === q.replace(/[\s.-]/g, '').length;
       let query = supabase
         .from('pacientes')
-        .select('id, nombre, apellido, dni, numero_afiliado, consultas_mes_actual, consultas_maximas, estado_padron, activo, obra_social:obras_sociales(nombre)')
+        .select('id, nombre, apellido, dni, fecha_nacimiento, numero_afiliado, consultas_mes_actual, consultas_maximas, estado_padron, activo, obra_social:obras_sociales(nombre)')
         .eq('activo', true)
         .limit(limit)
         .order('apellido');
