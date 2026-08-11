@@ -22,20 +22,20 @@ export const usePatientSearch = (term: string, limit = 5, debounceMs = 250) => {
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const q = debounced.trim();
-      const isNumeric = /^\d+$/.test(q);
+      const normalizedDigits = q.replace(/\D/g, '');
+      const isNumeric = normalizedDigits.length > 0 && normalizedDigits.length === q.replace(/[\s.-]/g, '').length;
       let query = supabase
         .from('pacientes')
-        .select('id, nombre, apellido, dni, activo, obra_social:obras_sociales(nombre)')
+        .select('id, nombre, apellido, dni, numero_afiliado, consultas_mes_actual, consultas_maximas, estado_padron, activo, obra_social:obras_sociales(nombre)')
         .eq('activo', true)
         .limit(limit)
         .order('apellido');
 
       const escaped = q.replace(/[%_,]/g, '');
       if (isNumeric) {
-        query = query.ilike('dni', `${escaped}%`);
+        query = query.or(`dni.ilike.${normalizedDigits}%,nro_doc.ilike.${normalizedDigits}%,cuil_beneficiario.ilike.${normalizedDigits}%`);
       } else {
-        // Prefix ilike on apellido/nombre — uses text_pattern_ops indexes
-        query = query.or(`apellido.ilike.${escaped}%,nombre.ilike.${escaped}%`);
+        query = query.or(`apellido.ilike.${escaped}%,nombre.ilike.${escaped}%,apellido_y_nombre.ilike.%${escaped}%`);
       }
 
       const { data, error } = await query;

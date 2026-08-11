@@ -211,9 +211,50 @@ export const useCreateAutorizacion = () => {
         if (prestacionesError) throw prestacionesError;
       }
 
-      return autorizacion;
+      const { data: createdAutorizacion, error: createdError } = await supabase
+        .from('autorizaciones')
+        .select(`
+          *,
+          pacientes (nombre, apellido, dni),
+          medicos (nombre, apellido, matricula),
+          obras_sociales (nombre)
+        `)
+        .eq('id', autorizacion.id)
+        .single();
+
+      if (createdError) throw createdError;
+
+      const { data: createdPrestaciones, error: createdPrestacionesError } = await supabase
+        .from('autorizacion_prestaciones')
+        .select('id, autorizacion_id, prestacion_codigo, prestacion_descripcion, cantidad, observaciones')
+        .eq('autorizacion_id', autorizacion.id)
+        .order('created_at', { ascending: true });
+
+      if (createdPrestacionesError) throw createdPrestacionesError;
+
+      return {
+        ...createdAutorizacion,
+        prestaciones: createdPrestaciones || [],
+      } as Autorizacion;
     },
-    onSuccess: () => {
+    onSuccess: (createdAutorizacion) => {
+      queryClient.setQueriesData(
+        { queryKey: ['autorizaciones-infinite'] },
+        (current: any) => {
+          if (!current?.pages?.length) return current;
+          const alreadyPresent = current.pages.some((page: any) =>
+            page.items?.some((item: Autorizacion) => item.id === createdAutorizacion.id)
+          );
+          if (alreadyPresent) return current;
+
+          const pages = current.pages.map((page: any, index: number) =>
+            index === 0
+              ? { ...page, items: [createdAutorizacion, ...(page.items || [])] }
+              : page
+          );
+          return { ...current, pages };
+        }
+      );
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
