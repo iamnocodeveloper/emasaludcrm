@@ -17,7 +17,8 @@ import AuditLogs from '@/components/AuditLogs';
 import ReportsManagement from '@/components/ReportsManagement';
 import { RecetarioManagement } from '@/components/RecetarioManagement';
 import FacturacionManagement from '@/components/FacturacionManagement';
-import AutoImportPadron from '@/components/AutoImportPadron';
+import PadronStatus from '@/components/PadronStatus';
+import PadronSync from '@/components/PadronSync';
 import Login from './Login';
 import { Loader2 } from 'lucide-react';
 
@@ -88,7 +89,13 @@ const Index = () => {
       case 'audit-logs':
         return <AuditLogs />;
       case 'import-padron':
-        return <AutoImportPadron />;
+        return (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold tracking-tight">Padrones</h2>
+            <PadronStatus />
+            <PadronSync />
+          </div>
+        );
       default:
         return <Dashboard />;
     }

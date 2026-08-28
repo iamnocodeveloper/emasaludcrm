@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAutorizacionesInfinite, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion, AUTORIZACIONES_PAGE_SIZE } from '@/hooks/useAutorizaciones';
+import { useAutorizacionesInfinite, useAutorizacionesPaciente, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion, AUTORIZACIONES_PAGE_SIZE } from '@/hooks/useAutorizaciones';
 import { usePatientSearch } from '@/hooks/usePatientSearch';
 
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import AutorizacionForm from './AutorizacionForm';
 import AutorizacionPDF from './AutorizacionPDF';
-import { Plus, Edit, Trash2, Search, AlertTriangle, User, Activity } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, AlertTriangle, User, Activity, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 const AutorizacionManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedAutorizacion, setSelectedAutorizacion] = useState<any>(null);
+  const [repeatTemplate, setRepeatTemplate] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -38,8 +39,11 @@ const AutorizacionManagement = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
-  const { data: autorizacionesPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
-  const autorizaciones = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
+  const { data: autorizacionesPages, isLoading: isLoadingList, fetchNextPage, hasNextPage, isFetchingNextPage } = useAutorizacionesInfinite(AUTORIZACIONES_PAGE_SIZE);
+  const { data: autorizacionesPaciente, isLoading: isLoadingPaciente } = useAutorizacionesPaciente(selectedPatientId);
+  const autorizacionesGenerales = React.useMemo(() => autorizacionesPages?.pages.flatMap(p => p.items) ?? [], [autorizacionesPages]);
+  const autorizaciones = selectedPatientId ? (autorizacionesPaciente ?? []) : autorizacionesGenerales;
+  const isLoading = selectedPatientId ? isLoadingPaciente : isLoadingList;
   // Skip search while a patient is already selected to avoid unnecessary requests
   const { data: patients = [] } = usePatientSearch(selectedPatientId ? '' : patientSearchTerm, 8, 400);
 
@@ -110,23 +114,39 @@ const AutorizacionManagement = () => {
       }
       setIsFormOpen(false);
       setSelectedAutorizacion(null);
+      setRepeatTemplate(null);
     } catch (error) {}
   };
 
   const handleFormClose = () => {
     setIsFormOpen(false);
     setSelectedAutorizacion(null);
+    setRepeatTemplate(null);
+  };
+
+  const handleRepeat = (autorizacion: any) => {
+    const { id, created_at, updated_at, fecha_solicitud, numero_autorizacion, documento_url, ...rest } = autorizacion;
+    setSelectedAutorizacion(null);
+    setRepeatTemplate({ ...rest, estado: 'pendiente', numero_autorizacion: '' });
+    setIsFormOpen(true);
+  };
+
+  const isPatientDeBaja = (p: any) => {
+    const estado = (p?.estado_padron || '').toUpperCase();
+    return estado === 'BAJA' || p?.activo === false;
   };
 
   const canCreateAutorizacion = () => {
     if (!selectedPatient) return false;
     const estado = (selectedPatient as any).estado_padron;
     if (estado === 'BDA' || estado === 'FDP') return false;
+    if (isPatientDeBaja(selectedPatient)) return false;
     const max = selectedPatient.consultas_maximas ?? 999;
     const actual = selectedPatient.consultas_mes_actual ?? 0;
     if (actual >= max) return false;
     return true;
   };
+
 
   // Filter autorizaciones - if patient selected, show only theirs
   const filteredAutorizaciones = autorizaciones?.filter(autorizacion => {
@@ -258,6 +278,7 @@ const AutorizacionManagement = () => {
                   const estado = (selectedPatient as any).estado_padron || 'Activo';
                   if (estado === 'BDA') return <Badge variant="destructive" className="text-base px-3 py-1">BDA - Baja De Aporte</Badge>;
                   if (estado === 'FDP') return <Badge variant="destructive" className="text-base px-3 py-1">FDP - Fuera De Prestación</Badge>;
+                  if (isPatientDeBaja(selectedPatient)) return <Badge variant="destructive" className="text-base px-3 py-1">BAJA - Fuera del padrón vigente</Badge>;
                   return <Badge variant="default" className="text-base px-3 py-1 bg-green-600">Activo</Badge>;
                 })()}
               </div>
@@ -273,6 +294,17 @@ const AutorizacionManagement = () => {
                 </AlertDescription>
               </Alert>
             )}
+
+            {/* Alert if de baja del padrón */}
+            {isPatientDeBaja(selectedPatient) && (selectedPatient as any).estado_padron !== 'BDA' && (selectedPatient as any).estado_padron !== 'FDP' && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Este paciente <strong>no figura en el padrón vigente</strong> (dado de baja en la última actualización). No se pueden crear autorizaciones.
+                </AlertDescription>
+              </Alert>
+            )}
+
 
             {/* Alert if tope reached */}
             {(selectedPatient.consultas_mes_actual ?? 0) >= (selectedPatient.consultas_maximas ?? 999) && 
@@ -406,11 +438,15 @@ const AutorizacionManagement = () => {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <AutorizacionPDF autorizacion={autorizacion} />
-                        <Button variant="outline" size="sm" onClick={() => { setSelectedAutorizacion(autorizacion); setIsFormOpen(true); }}>
+                        <Button variant="outline" size="sm" onClick={() => { setSelectedAutorizacion(autorizacion); setRepeatTemplate(null); setIsFormOpen(true); }}>
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" title="Repetir esta autorización" onClick={() => handleRepeat(autorizacion)}>
+                          <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
@@ -436,15 +472,18 @@ const AutorizacionManagement = () => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedAutorizacion ? 'Editar Autorización' : 'Nueva Autorización'}</DialogTitle>
+            <DialogTitle>{selectedAutorizacion ? 'Editar Autorización' : (repeatTemplate ? 'Repetir Autorización' : 'Nueva Autorización')}</DialogTitle>
           </DialogHeader>
           <AutorizacionForm
-            autorizacion={selectedAutorizacion}
+            key={selectedAutorizacion?.id ?? (repeatTemplate ? 'repeat' : 'new')}
+            autorizacion={selectedAutorizacion || repeatTemplate}
             preselectedPatientId={selectedPatientId || undefined}
+            preselectedPatient={!selectedAutorizacion ? selectedPatient : undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormClose}
             isLoading={updateAutorizacion.isPending || createAutorizacion.isPending}
           />
+
         </DialogContent>
       </Dialog>
     </div>
