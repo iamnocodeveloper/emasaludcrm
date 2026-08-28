@@ -63,6 +63,7 @@ const Sidebar = ({ activeSection, onSectionChange, isCollapsed, onToggleCollapse
         { id: 'recetarios', label: 'Recetarios', icon: Pill },
         { id: 'facturacion', label: 'Facturación', icon: FileText },
         { id: 'reports', label: 'Reportes', icon: TrendingUp },
+        { id: 'import-padron', label: 'Padrones', icon: FileCheck2 },
         { id: 'users', label: 'Usuarios', icon: UsersIcon },
         { id: 'audit-logs', label: 'Logs de Auditoría', icon: ClipboardList },
       ];
