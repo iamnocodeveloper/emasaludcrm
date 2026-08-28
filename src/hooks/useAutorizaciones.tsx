@@ -154,6 +154,52 @@ export const useAutorizacionesInfinite = (pageSize = AUTORIZACIONES_PAGE_SIZE) =
   });
 };
 
+// Historial COMPLETO de autorizaciones de un paciente (sin paginado)
+export const useAutorizacionesPaciente = (pacienteId?: number | null) => {
+  return useQuery({
+    queryKey: ['autorizaciones-paciente', pacienteId],
+    enabled: !!pacienteId,
+    queryFn: async () => {
+      const { data: autorizaciones, error } = await supabase
+        .from('autorizaciones')
+        .select(`
+          *,
+          pacientes (nombre, apellido, dni),
+          medicos (nombre, apellido, matricula),
+          obras_sociales (nombre)
+        `)
+        .eq('activa', true)
+        .eq('paciente_id', pacienteId as number)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (!autorizaciones || autorizaciones.length === 0) return [] as Autorizacion[];
+
+      const ids = autorizaciones.map(a => a.id);
+      const { data: allPrestaciones, error: prestError } = await supabase
+        .from('autorizacion_prestaciones')
+        .select('id, autorizacion_id, prestacion_codigo, prestacion_descripcion, cantidad, observaciones')
+        .in('autorizacion_id', ids)
+        .order('created_at', { ascending: true });
+
+      if (prestError) throw prestError;
+
+      const prestacionesMap = new Map<number, typeof allPrestaciones>();
+      for (const p of (allPrestaciones || [])) {
+        const list = prestacionesMap.get(p.autorizacion_id) || [];
+        list.push(p);
+        prestacionesMap.set(p.autorizacion_id, list);
+      }
+
+      return autorizaciones.map(a => ({
+        ...a,
+        prestaciones: prestacionesMap.get(a.id) || []
+      })) as Autorizacion[];
+    },
+  });
+};
+
+
 
 export const useCreateAutorizacion = () => {
   const queryClient = useQueryClient();
@@ -257,6 +303,7 @@ export const useCreateAutorizacion = () => {
       );
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       toast({
         title: "Autorización creada",
@@ -333,6 +380,7 @@ export const useUpdateAutorizacion = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       toast({
         title: "Autorización actualizada",
@@ -370,6 +418,7 @@ export const useDeleteAutorizacion = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       toast({
         title: "Autorización eliminada",
         description: "La autorización se ha eliminado exitosamente.",

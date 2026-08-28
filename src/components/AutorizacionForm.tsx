@@ -19,6 +19,7 @@ import MultiplePrestacionesSelector from './MultiplePrestacionesSelector';
 interface AutorizacionFormProps {
   autorizacion?: Autorizacion;
   preselectedPatientId?: number;
+  preselectedPatient?: any;
   onSubmit: (data: AutorizacionFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -100,28 +101,32 @@ const MedicoSearchInput = ({ onSelect, selectedMedicoId, medicos }: MedicoSearch
 const AutorizacionForm: React.FC<AutorizacionFormProps> = ({
   autorizacion,
   preselectedPatientId,
+  preselectedPatient,
   onSubmit,
   onCancel,
   isLoading = false
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [prestaciones, setPrestaciones] = useState<AutorizacionPrestacionFormData[]>([]);
+  const [manualPatient, setManualPatient] = useState(false);
   const { data: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
-  
+
+  const showPatientCard = !!preselectedPatient && !manualPatient;
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Omit<AutorizacionFormData, 'prestaciones'>>({
     defaultValues: {
-      paciente_id: autorizacion?.paciente_id || preselectedPatientId || 0,
+      paciente_id: autorizacion?.paciente_id || preselectedPatientId || preselectedPatient?.id || 0,
       medico_id: autorizacion?.medico_id || undefined,
-      obra_social_id: autorizacion?.obra_social_id || undefined,
+      obra_social_id: autorizacion?.obra_social_id || preselectedPatient?.obra_social_id || undefined,
       tipo_autorizacion: autorizacion?.tipo_autorizacion || '',
       descripcion: autorizacion?.descripcion || '',
       fecha_vencimiento: autorizacion?.fecha_vencimiento || '',
       estado: autorizacion?.estado || 'pendiente',
       numero_autorizacion: autorizacion?.numero_autorizacion || '',
       observaciones: autorizacion?.observaciones || '',
-      numero_credencial: autorizacion?.numero_credencial || '',
-      parentesco_beneficiario: autorizacion?.parentesco_beneficiario || '',
+      numero_credencial: autorizacion?.numero_credencial || preselectedPatient?.numero_afiliado || '',
+      parentesco_beneficiario: autorizacion?.parentesco_beneficiario || preselectedPatient?.parentesco || '',
       profesional_solicitante: autorizacion?.profesional_solicitante || '',
       prestador: autorizacion?.prestador || '',
       copago: autorizacion?.copago || undefined,
@@ -192,16 +197,35 @@ const AutorizacionForm: React.FC<AutorizacionFormProps> = ({
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Paciente *</Label>
-              <PatientSelector
-                patients={[]}
-                selectedPatientId={watchedValues.paciente_id}
-                onSelect={(patientId) => setValue('paciente_id', patientId)}
-                placeholder="Buscar y seleccionar paciente..."
-              />
+              {showPatientCard ? (
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 p-3">
+                  <div>
+                    <p className="font-semibold">
+                      {preselectedPatient.apellido}, {preselectedPatient.nombre}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      DNI: {preselectedPatient.dni}
+                      {preselectedPatient.obra_social?.nombre ? ` · ${preselectedPatient.obra_social.nombre}` : ''}
+                      {preselectedPatient.numero_afiliado ? ` · N° Afiliado: ${preselectedPatient.numero_afiliado}` : ''}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setManualPatient(true)}>
+                    Cambiar paciente
+                  </Button>
+                </div>
+              ) : (
+                <PatientSelector
+                  patients={[]}
+                  selectedPatientId={watchedValues.paciente_id}
+                  onSelect={(patientId) => setValue('paciente_id', patientId)}
+                  placeholder="Buscar y seleccionar paciente..."
+                />
+              )}
               {errors.paciente_id && (
                 <p className="text-sm text-red-600">Debe seleccionar un paciente</p>
               )}
             </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

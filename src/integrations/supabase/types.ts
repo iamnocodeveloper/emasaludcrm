@@ -836,6 +836,59 @@ export type Database = {
           },
         ]
       }
+      padron_cargas: {
+        Row: {
+          actualizados: number
+          archivo_nombre: string | null
+          creados: number
+          created_at: string
+          dados_de_baja: number
+          errores: Json
+          id: string
+          obra_social_id: number
+          periodo: string
+          total_procesados: number
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          actualizados?: number
+          archivo_nombre?: string | null
+          creados?: number
+          created_at?: string
+          dados_de_baja?: number
+          errores?: Json
+          id?: string
+          obra_social_id: number
+          periodo: string
+          total_procesados?: number
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          actualizados?: number
+          archivo_nombre?: string | null
+          creados?: number
+          created_at?: string
+          dados_de_baja?: number
+          errores?: Json
+          id?: string
+          obra_social_id?: number
+          periodo?: string
+          total_procesados?: number
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "padron_cargas_obra_social_id_fkey"
+            columns: ["obra_social_id"]
+            isOneToOne: false
+            referencedRelation: "obras_sociales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_tags: {
         Row: {
           active: boolean | null
