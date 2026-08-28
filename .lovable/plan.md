@@ -1,48 +1,44 @@
-# Convertir EMA Salud en SaaS multitenant con Super Admin
+# Padrones al día, historial completo y autorización más rápida
 
-## Estado actual (verificado)
+Tres mejoras: control mensual de padrones con bajas confirmadas, historial completo de autorizaciones por paciente, y autocompletado del paciente al crear la autorización.
 
-El sistema **no** es multitenant. Ninguna tabla del esquema (`pacientes`, `autorizaciones`, `medicos`, `obras_sociales`, `turnos`, `credenciales`, `recetarios_emitidos`, `nomeclador`, `users`, `user_roles`, `system_config`) tiene columna de clínica u organización. Las políticas RLS filtran solo por rol (`has_role`) y, en autorizaciones, por `created_by_user_id`. Hoy todos los usuarios comparten los mismos datos.
+## 1. Padrones desactualizados (urgente)
 
-Decisiones tomadas por defecto (podés cambiarlas):
-- Todos los datos actuales se migran a una clínica inicial: **EMA Salud**.
-- Planes y suscripciones se gestionan **internamente** desde el Super Admin (sin pasarela de pago todavía; se puede agregar Stripe/Paddle después).
-- El switch de IA por clínica habilita/deshabilita las funciones de IA y define un cupo mensual de uso.
+**Comparación contra el padrón vigente**
+Al importar un padrón, además de crear/actualizar, el sistema compara los DNI del archivo contra los pacientes activos de esa obra social y arma la lista de "ausentes" (estaban antes, no están en el archivo nuevo).
 
-## Fase 1 — Aislamiento de datos (multitenancy)
+Antes de tocar nada, se muestra una pantalla de previsualización:
+- Cantidad y detalle de ausentes (DNI, apellido y nombre, última fecha de padrón).
+- Botón "Confirmar bajas" (marca inactivos, estado de padrón = BAJA) o "Solo importar sin bajas".
+- Posibilidad de desmarcar pacientes puntuales para que no se den de baja.
 
-1. Nueva tabla `clinicas` (nombre, slug, logo, dirección, estado, plan, fecha de alta, `ia_habilitada`, `ia_cupo_mensual`).
-2. Agregar `clinica_id` a todas las tablas de negocio: pacientes, médicos, especialidades, obras sociales, turnos, consultas, diagnósticos, autorizaciones, autorizacion_prestaciones, credenciales, recetarios (emitidos y config), lotes de facturación, comprobantes particulares, nomenclador, patient_tags, audit_logs, users.
-3. Backfill: todos los registros existentes quedan en la clínica EMA Salud; luego la columna pasa a NOT NULL.
-4. Función `get_user_clinica_id()` (SECURITY DEFINER) que devuelve la clínica del usuario logueado.
-5. Reescribir **todas** las políticas RLS para exigir `clinica_id = get_user_clinica_id()`, manteniendo las reglas de rol actuales encima (admin/usuario_normal ven todo lo de su clínica, prestador solo lo propio).
-6. Ajustar índices únicos que hoy son globales para que sean por clínica — en particular la restricción de DNI activo (`unique_active_patient_dni`) pasa a `(clinica_id, dni)`.
-7. En el frontend: los hooks de escritura (`usePatients`, `useAutorizaciones`, `useMedicos`, etc.) setean `clinica_id` automáticamente al insertar; las lecturas quedan protegidas por RLS.
+Los dados de baja quedan bloqueados para nuevas autorizaciones, igual que hoy ocurre con BDA/FDP: el panel del paciente muestra la alerta roja y no deja emitir.
 
-## Fase 2 — Super Admin
+**Semáforo por obra social**
+En la sección de padrones, un tablero con una fila por obra social oficial (OSPSIP, OSCE, OSCEARA, OSPIV, OSPE):
+- Verde: padrón del mes en curso cargado.
+- Amarillo: último padrón es del mes anterior (vence pronto).
+- Rojo: sin carga del mes en curso ni del anterior (pendiente / desactualizado).
+Cada fila muestra la fecha de la última carga, el período, y cantidad de activos.
 
-1. Nuevo rol `super_admin` en el enum `app_role`, fuera del alcance de clínica (ve todo el sistema).
-2. Nueva ruta protegida `/super-admin` con su propio layout y sidebar, accesible solo con ese rol.
-3. Módulos:
-   - **Clínicas**: alta, edición, suspensión, ver métricas por clínica (pacientes, autorizaciones, usuarios activos).
-   - **Usuarios globales**: listado de todos los usuarios con su clínica, alta de usuario administrador al crear una clínica, activar/desactivar.
-   - **Planes**: tabla `planes` (nombre, precio, límite de usuarios, límite de pacientes, IA incluida sí/no, cupo de IA).
-   - **Suscripciones**: tabla `suscripciones` (clínica, plan, estado, período, monto, fecha de vencimiento) con historial de pagos manuales (`pagos`).
-   - **Ingresos**: panel con ingreso mensual recurrente, ingresos acumulados, distribución por plan y clínicas por vencer.
-   - **IA**: switch por clínica con cupo mensual y contador de uso.
-4. Aplicación de límites: al crear usuarios o pacientes se valida contra el plan de la clínica; suscripción vencida o suspendida bloquea el acceso con un aviso.
+**Log de auditoría de cargas**
+Cada importación registra: obra social, período (mes/año), archivo, totales (procesados, creados, actualizados, dados de baja, errores), usuario y fecha. Se ve como historial en la misma sección, con detalle de errores por registro.
 
-## Fase 3 — Activación de IA
+## 2. Historial completo de autorizaciones del paciente
 
-1. Tabla `ia_uso` para registrar cada llamada (clínica, usuario, función, tokens, fecha).
-2. Edge function que valida antes de cada llamada: clínica activa, IA habilitada y cupo disponible; si no, devuelve error claro.
-3. Función inicial de IA: **asistente clínico** (resumen de historia del paciente y sugerencia de diagnóstico a partir de las consultas registradas), usando Lovable AI. Se pueden sumar más después.
-4. Las secciones de IA se ocultan en clínicas sin la función habilitada.
+Hoy el listado carga de a 20 en general y, al filtrar por paciente, solo se muestran las que ya estaban cargadas en pantalla (por eso "aparecen dos"). Se cambia a: al seleccionar un paciente, se consultan **todas** sus autorizaciones directamente en la base, ordenadas de la más nueva a la más vieja, sin paginado.
 
-## Notas técnicas
+Además, botón **"Repetir"** en cada fila del historial: abre el formulario precargado con todos los datos de esa autorización (prestaciones, médico, prestador, diagnóstico), con fecha nueva, para emitirla en un clic.
 
-- Todo el cambio de esquema va en migraciones con `GRANT` explícito para cada tabla nueva, RLS habilitada y políticas basadas en funciones SECURITY DEFINER para evitar recursión.
-- El rol `super_admin` se resuelve con `has_role(auth.uid(), 'super_admin')` en las políticas, permitiendo bypass del filtro de clínica.
-- `system_config` pasa a ser por clínica (logo, nombre, subtítulo), con fallback a la configuración global.
-- Fase 1 es la más delicada: toca todas las políticas RLS y todos los hooks. Conviene aprobar y ejecutar Fase 1 completa antes de empezar Fase 2.
-- La integración de cobro real (Stripe o Paddle) queda fuera de este plan; el modelo de datos ya la contempla para sumarla después.
+## 3. Autocompletar el paciente en la autorización
+
+Al presionar "Nueva Autorización" con un paciente ya seleccionado, el formulario deja de pedir buscarlo otra vez: muestra una tarjeta fija con apellido, nombre, DNI y obra social, y precarga automáticamente obra social, número de credencial (nº de afiliado) y parentesco. Un botón "Cambiar paciente" permite volver al buscador si hace falta.
+
+## Detalles técnicos
+
+- Nueva tabla `padron_cargas`: `obra_social_id`, `periodo` (date, primer día del mes), `archivo_nombre`, `total_procesados`, `creados`, `actualizados`, `dados_de_baja`, `errores` (jsonb), `usuario_id`, `created_at`. GRANTs para `authenticated`/`service_role` + RLS (lectura para usuarios autenticados, escritura para admin/servicio).
+- `import-padron-bulk`: nuevos modos `dry_run_diff` (devuelve ausentes sin escribir), `apply_bajas` (recibe lista de IDs confirmados) y registro en `padron_cargas`.
+- `PadronConverter.tsx`: selector de período, paso de previsualización de bajas, y llamada al log.
+- Nuevo `PadronStatus.tsx` + hook `usePadronCargas.tsx` para el semáforo e historial.
+- `AutorizacionManagement.tsx`: nuevo hook `useAutorizacionesPaciente(pacienteId)` (query server-side sin paginado) usado cuando hay paciente seleccionado; el infinito sigue para la vista general. Se agrega `estado_padron === 'BAJA'` a las validaciones de bloqueo.
+- `AutorizacionForm.tsx`: acepta `preselectedPatient` (objeto completo) y una autorización base para "Repetir"; oculta `PatientSelector` cuando viene preseleccionado.
