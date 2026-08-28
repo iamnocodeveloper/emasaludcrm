@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, FileText, Settings, BarChart3, Shield, Activity, ChevronLeft, LogOut, UserCog, Stethoscope, Building2, BookOpen, UsersIcon, ClipboardList, Loader2, TrendingUp, CreditCard, Pill } from 'lucide-react';
+import { Calendar, Users, FileText, Settings, BarChart3, Shield, Activity, ChevronLeft, LogOut, UserCog, Stethoscope, Building2, BookOpen, UsersIcon, ClipboardList, Loader2, TrendingUp, CreditCard, Pill, FileCheck2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/hooks/useSystemConfig';
