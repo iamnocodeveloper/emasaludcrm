@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, FileText, Settings, BarChart3, Shield, Activity, ChevronLeft, LogOut, UserCog, Stethoscope, Building2, BookOpen, UsersIcon, ClipboardList, Loader2, TrendingUp, CreditCard, Pill } from 'lucide-react';
+import { Calendar, Users, FileText, Settings, BarChart3, Shield, Activity, ChevronLeft, LogOut, UserCog, Stethoscope, Building2, BookOpen, UsersIcon, ClipboardList, Loader2, TrendingUp, CreditCard, Pill, FileCheck2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/hooks/useSystemConfig';
@@ -63,6 +63,7 @@ const Sidebar = ({ activeSection, onSectionChange, isCollapsed, onToggleCollapse
         { id: 'recetarios', label: 'Recetarios', icon: Pill },
         { id: 'facturacion', label: 'Facturación', icon: FileText },
         { id: 'reports', label: 'Reportes', icon: TrendingUp },
+        { id: 'import-padron', label: 'Padrones', icon: FileCheck2 },
         { id: 'users', label: 'Usuarios', icon: UsersIcon },
         { id: 'audit-logs', label: 'Logs de Auditoría', icon: ClipboardList },
       ];
@@ -80,6 +81,7 @@ const Sidebar = ({ activeSection, onSectionChange, isCollapsed, onToggleCollapse
         { id: 'recetarios', label: 'Recetarios', icon: Pill },
         { id: 'facturacion', label: 'Facturación', icon: FileText },
         { id: 'reports', label: 'Reportes', icon: TrendingUp },
+        { id: 'import-padron', label: 'Padrones', icon: FileCheck2 },
       ];
     } else if (currentUser.role === 'prestador') {
       // Prestador: solo puede acceder a autorizaciones (SIN dashboard)
