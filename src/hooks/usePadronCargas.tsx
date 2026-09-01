@@ -9,6 +9,8 @@ export interface PadronCarga {
   total_procesados: number;
   creados: number;
   actualizados: number;
+  reactivados?: number;
+
   dados_de_baja: number;
   errores: any;
   usuario_id: string | null;
