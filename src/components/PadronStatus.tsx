@@ -90,7 +90,11 @@ const PadronStatus: React.FC = () => {
                   <TableHead>Período</TableHead>
                   <TableHead>Archivo</TableHead>
                   <TableHead>Procesados</TableHead>
+                  <TableHead>Altas</TableHead>
+                  <TableHead>Reactivados</TableHead>
+                  <TableHead>Actualizados</TableHead>
                   <TableHead>Bajas</TableHead>
+
                   <TableHead>Errores</TableHead>
                 </TableRow>
               </TableHeader>
