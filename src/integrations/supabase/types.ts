@@ -847,6 +847,7 @@ export type Database = {
           id: string
           obra_social_id: number
           periodo: string
+          reactivados: number
           total_procesados: number
           updated_at: string
           usuario_id: string | null
@@ -861,6 +862,7 @@ export type Database = {
           id?: string
           obra_social_id: number
           periodo: string
+          reactivados?: number
           total_procesados?: number
           updated_at?: string
           usuario_id?: string | null
@@ -875,6 +877,7 @@ export type Database = {
           id?: string
           obra_social_id?: number
           periodo?: string
+          reactivados?: number
           total_procesados?: number
           updated_at?: string
           usuario_id?: string | null
