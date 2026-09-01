@@ -1,0 +1,1 @@
+ALTER TABLE public.padron_cargas ADD COLUMN IF NOT EXISTS reactivados integer NOT NULL DEFAULT 0;

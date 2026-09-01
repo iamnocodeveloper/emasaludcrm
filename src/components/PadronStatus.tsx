@@ -90,7 +90,11 @@ const PadronStatus: React.FC = () => {
                   <TableHead>Período</TableHead>
                   <TableHead>Archivo</TableHead>
                   <TableHead>Procesados</TableHead>
+                  <TableHead>Altas</TableHead>
+                  <TableHead>Reactivados</TableHead>
+                  <TableHead>Actualizados</TableHead>
                   <TableHead>Bajas</TableHead>
+
                   <TableHead>Errores</TableHead>
                 </TableRow>
               </TableHeader>
@@ -104,7 +108,11 @@ const PadronStatus: React.FC = () => {
                       <TableCell>{format(new Date(`${c.periodo}T00:00:00`), 'MM/yyyy')}</TableCell>
                       <TableCell className="max-w-[220px] truncate">{c.archivo_nombre || '-'}</TableCell>
                       <TableCell>{c.total_procesados}</TableCell>
+                      <TableCell>{c.creados}</TableCell>
+                      <TableCell>{c.reactivados ?? 0}</TableCell>
+                      <TableCell>{c.actualizados}</TableCell>
                       <TableCell>{c.dados_de_baja}</TableCell>
+
                       <TableCell>
                         {errores.length === 0
                           ? <Badge className="bg-green-600 text-white">OK</Badge>
