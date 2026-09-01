@@ -180,23 +180,18 @@ Deno.serve(async (req) => {
       const result = { creados: 0, actualizados: 0, reactivados: 0, errores: [] as string[] };
       if (rows.length === 0) return json(result);
 
-      // Documentos del lote para una única consulta
-      const docs = new Set<string>();
-      for (const r of rows) {
-        for (const v of [...docVariants(r.dni), ...docVariants(r.nro_doc), ...docVariants(r.cuil_beneficiario)]) {
-          docs.add(v);
-        }
+      // Padrón completo de la obra social: el match se hace por variantes de documento
+      // (DNI, nro_doc y CUIL), por eso no alcanza con filtrar por la columna dni.
+      let existentes: any[] = [];
+      try {
+        existentes = await fetchPadronActual(obraSocialId);
+      } catch (e) {
+        result.errores.push(`lookup: ${(e as Error).message}`);
       }
-
-      const { data: existentes, error: fetchError } = await supabase
-        .from("pacientes")
-        .select("id, dni, nro_doc, cuil_beneficiario, activo")
-        .eq("obra_social_id", obraSocialId)
-        .in("dni", Array.from(docs));
-      if (fetchError) result.errores.push(`lookup: ${fetchError.message}`);
 
       const byDoc = new Map<string, any>();
       for (const p of existentes || []) {
+
         for (const src of [p.dni, p.nro_doc, p.cuil_beneficiario]) {
           for (const v of docVariants(src)) if (!byDoc.has(v)) byDoc.set(v, p);
         }
