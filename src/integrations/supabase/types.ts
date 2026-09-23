@@ -892,6 +892,63 @@ export type Database = {
           },
         ]
       }
+      padron_stage_tmp: {
+        Row: {
+          apellido: string | null
+          apellido_y_nombre: string | null
+          cuil_beneficiario: string | null
+          cuil_titular: string | null
+          direccion: string | null
+          dni: string | null
+          estado_civil: string | null
+          fecha_alta: string | null
+          fecha_nacimiento: string | null
+          localidad: string | null
+          nacionalidad: string | null
+          nombre: string | null
+          parentesco: string | null
+          provincia: string | null
+          sexo: string | null
+          tipo_doc: string | null
+        }
+        Insert: {
+          apellido?: string | null
+          apellido_y_nombre?: string | null
+          cuil_beneficiario?: string | null
+          cuil_titular?: string | null
+          direccion?: string | null
+          dni?: string | null
+          estado_civil?: string | null
+          fecha_alta?: string | null
+          fecha_nacimiento?: string | null
+          localidad?: string | null
+          nacionalidad?: string | null
+          nombre?: string | null
+          parentesco?: string | null
+          provincia?: string | null
+          sexo?: string | null
+          tipo_doc?: string | null
+        }
+        Update: {
+          apellido?: string | null
+          apellido_y_nombre?: string | null
+          cuil_beneficiario?: string | null
+          cuil_titular?: string | null
+          direccion?: string | null
+          dni?: string | null
+          estado_civil?: string | null
+          fecha_alta?: string | null
+          fecha_nacimiento?: string | null
+          localidad?: string | null
+          nacionalidad?: string | null
+          nombre?: string | null
+          parentesco?: string | null
+          provincia?: string | null
+          sexo?: string | null
+          tipo_doc?: string | null
+        }
+        Relationships: []
+      }
       patient_tags: {
         Row: {
           active: boolean | null
