@@ -8,6 +8,8 @@ import { usePatients } from '@/hooks/usePatients';
 import { useSystemConfig } from '@/hooks/useSystemConfig';
 import { useCreateCredencial, useCredencialByPaciente } from '@/hooks/useCredenciales';
 import PatientSelector from '@/components/PatientSelector';
+import { parseLocalDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import html2canvas from 'html2canvas';
 const CredencialCard: React.FC<{ 
   paciente: any; 
@@ -16,7 +18,7 @@ const CredencialCard: React.FC<{
   systemName?: string;
 }> = ({ paciente, credencial, logoUrl, systemName }) => {
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString('es-AR', {
       day: '2-digit',
       month: '2-digit',
@@ -82,9 +84,15 @@ const CredencialCard: React.FC<{
         </div>
         
         <div className="flex justify-between items-end">
-          <div>
-            <p className="text-blue-100 text-sm">VIGENCIA HASTA</p>
-            <p className="font-semibold">{formatDate(credencial.fecha_vencimiento)}</p>
+          <div className="flex gap-6">
+            <div>
+              <p className="text-blue-100 text-sm">FECHA DE EMISIÓN</p>
+              <p className="font-semibold">{formatDate(credencial.fecha_emision)}</p>
+            </div>
+            <div>
+              <p className="text-blue-100 text-sm">VIGENCIA HASTA</p>
+              <p className="font-semibold">{formatDate(credencial.fecha_vencimiento)}</p>
+            </div>
           </div>
           
           <div className="text-right">
@@ -142,7 +150,8 @@ const CredencialGenerator: React.FC = () => {
     await createCredencial.mutateAsync({
       paciente_id: selectedPatient.id,
       numero_credencial: `${selectedPatient.dni}-${Date.now().toString().slice(-4)}`,
-      fecha_vencimiento: lastDay.toISOString().split('T')[0],
+      fecha_emision: format(today, 'yyyy-MM-dd'),
+      fecha_vencimiento: format(lastDay, 'yyyy-MM-dd'),
     });
     
     setShowCredencial(true);
@@ -169,13 +178,8 @@ const CredencialGenerator: React.FC = () => {
 
   const currentCredencial = existingCredencial || {
     numero_credencial: selectedPatient ? `${selectedPatient.dni}-${Date.now().toString().slice(-4)}` : '',
-    fecha_vencimiento: (() => {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-      const lastDay = new Date(year, month + 1, 0);
-      return lastDay.toISOString().split('T')[0];
-    })(),
+    fecha_emision: format(new Date(), 'yyyy-MM-dd'),
+    fecha_vencimiento: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
   };
 
   return (

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreditCard, Search, Download, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { parseLocalDate } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 
 interface CredencialData {
@@ -28,7 +29,7 @@ interface CredencialData {
 }
 
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
@@ -66,9 +67,15 @@ const CredencialCard: React.FC<{ data: CredencialData }> = ({ data }) => {
           <p className="font-semibold">{paciente.numero_afiliado || `${paciente.dni}-001`}</p>
         </div>
         <div className="flex justify-between items-end">
-          <div>
-            <p className="text-blue-100 text-sm">VIGENCIA HASTA</p>
-            <p className="font-semibold">{formatDate(credencial.fecha_vencimiento)}</p>
+          <div className="flex gap-6">
+            <div>
+              <p className="text-blue-100 text-sm">FECHA DE EMISIÓN</p>
+              <p className="font-semibold">{formatDate(credencial.fecha_emision)}</p>
+            </div>
+            <div>
+              <p className="text-blue-100 text-sm">VIGENCIA HASTA</p>
+              <p className="font-semibold">{formatDate(credencial.fecha_vencimiento)}</p>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-4xl font-bold text-blue-200">{credencial.numero_credencial.slice(-3)}</p>

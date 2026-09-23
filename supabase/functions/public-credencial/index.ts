@@ -53,11 +53,11 @@ Deno.serve(async (req) => {
       .limit(1)
       .single()
 
-    // If no credential, create one
+    // If no credential, create one (dates in Argentina local time)
     if (!credencial) {
-      const now = new Date()
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      const fechaVencimiento = lastDay.toISOString().split('T')[0]
+      const todayAR = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+      const [arYear, arMonth] = todayAR.split('-').map(Number)
+      const fechaVencimiento = new Date(Date.UTC(arYear, arMonth, 0)).toISOString().split('T')[0]
       const numeroCredencial = `CRED-${cleanDni}-${Date.now().toString(36).toUpperCase()}`
 
       const { data: newCred, error: credError } = await supabase
@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
         .insert({
           paciente_id: paciente.id,
           numero_credencial: numeroCredencial,
+          fecha_emision: todayAR,
           fecha_vencimiento: fechaVencimiento,
           estado: 'activa',
         })

@@ -32,6 +32,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useCredenciales, useDeleteCredencial } from '@/hooks/useCredenciales';
+import { parseLocalDate } from '@/lib/utils';
 
 const CredencialManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,7 +70,7 @@ const CredencialManagement: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR');
+    return parseLocalDate(dateString).toLocaleDateString('es-AR');
   };
 
   const handleDelete = async (credencialId: string) => {
@@ -77,7 +78,9 @@ const CredencialManagement: React.FC = () => {
   };
 
   const isExpired = (fechaVencimiento: string) => {
-    return new Date(fechaVencimiento) < new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return parseLocalDate(fechaVencimiento) < today;
   };
 
   if (isLoading) {

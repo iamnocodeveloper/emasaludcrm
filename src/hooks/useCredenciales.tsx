@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -28,18 +29,17 @@ export interface Credencial {
 export interface CredencialFormData {
   paciente_id: number;
   numero_credencial: string;
+  fecha_emision?: string;
   fecha_vencimiento: string;
   estado?: 'activa' | 'vencida' | 'suspendida';
   observaciones?: string;
 }
 
-// Helper function to get last day of current month
+// Helper function to get last day of current month (local, non-UTC)
 const getLastDayOfMonth = () => {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const lastDay = new Date(year, month + 1, 0);
-  return lastDay.toISOString().split('T')[0];
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  return format(lastDay, 'yyyy-MM-dd');
 };
 
 export const useCredenciales = () => {
@@ -108,7 +108,8 @@ export const useCreateCredencial = () => {
       // Generate credential number if not provided
       const numeroCredencial = data.numero_credencial || `CRED-${Date.now()}`;
       
-      // Set expiration to last day of current month if not provided
+      // Set emission to today and expiration to last day of current month if not provided
+      const fechaEmision = data.fecha_emision || format(new Date(), 'yyyy-MM-dd');
       const fechaVencimiento = data.fecha_vencimiento || getLastDayOfMonth();
       
       const { data: credencial, error } = await supabase
@@ -116,6 +117,7 @@ export const useCreateCredencial = () => {
         .insert({
           paciente_id: data.paciente_id,
           numero_credencial: numeroCredencial,
+          fecha_emision: fechaEmision,
           fecha_vencimiento: fechaVencimiento,
           estado: data.estado || 'activa',
           observaciones: data.observaciones,
