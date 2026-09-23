@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { parseLocalDate } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 export interface Credencial {
@@ -35,11 +36,23 @@ export interface CredencialFormData {
   observaciones?: string;
 }
 
-// Helper function to get last day of current month (local, non-UTC)
-const getLastDayOfMonth = () => {
-  const today = new Date();
-  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+// Last day of the current month (local, non-UTC)
+export const getLastDayOfMonth = (date: Date = new Date()) => {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   return format(lastDay, 'yyyy-MM-dd');
+};
+
+// A credential is valid only during its emission month: it expires on the last day of that month.
+export const isCredencialVigente = (fechaVencimiento?: string | null) => {
+  if (!fechaVencimiento) return false;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const vencimiento = parseLocalDate(fechaVencimiento);
+  return (
+    vencimiento.getFullYear() === hoy.getFullYear() &&
+    vencimiento.getMonth() === hoy.getMonth() &&
+    vencimiento >= hoy
+  );
 };
 
 export const useCredenciales = () => {
@@ -143,6 +156,61 @@ export const useCreateCredencial = () => {
         variant: 'destructive',
       });
       console.error('Error creating credencial:', error);
+    },
+  });
+};
+
+export const useReissueCredencial = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ credencialAnteriorId, data }: { credencialAnteriorId?: string; data: CredencialFormData }) => {
+      const numeroCredencial = data.numero_credencial || `CRED-${Date.now()}`;
+      const fechaEmision = data.fecha_emision || format(new Date(), 'yyyy-MM-dd');
+      const fechaVencimiento = data.fecha_vencimiento || getLastDayOfMonth();
+
+      const { data: credencial, error } = await supabase
+        .from('credenciales')
+        .insert({
+          paciente_id: data.paciente_id,
+          numero_credencial: numeroCredencial,
+          fecha_emision: fechaEmision,
+          fecha_vencimiento: fechaVencimiento,
+          estado: data.estado || 'activa',
+          observaciones: data.observaciones,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // The replaced credential is no longer valid
+      if (credencialAnteriorId) {
+        const { error: updateError } = await supabase
+          .from('credenciales')
+          .update({ estado: 'vencida' })
+          .eq('id', credencialAnteriorId);
+
+        if (updateError) throw updateError;
+      }
+
+      return credencial;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credenciales'] });
+      queryClient.invalidateQueries({ queryKey: ['credencial-paciente'] });
+      toast({
+        title: 'Credencial reemitida',
+        description: 'Se generó una nueva credencial y la anterior quedó sin efecto.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'No se pudo reemitir la credencial.',
+        variant: 'destructive',
+      });
+      console.error('Error reissuing credencial:', error);
     },
   });
 };

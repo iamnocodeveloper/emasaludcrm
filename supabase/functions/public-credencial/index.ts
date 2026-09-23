@@ -43,6 +43,16 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Argentina local date (YYYY-MM-DD) and last day of the current month
+    const todayAR = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+    const [arYear, arMonth] = todayAR.split('-').map(Number)
+    const fechaVencimiento = new Date(Date.UTC(arYear, arMonth, 0)).toISOString().split('T')[0]
+    const esDelMesEnCurso = (fechaVenc?: string | null) => {
+      if (!fechaVenc) return false
+      const [vencYear, vencMonth] = fechaVenc.split('-').map(Number)
+      return vencYear === arYear && vencMonth === arMonth
+    }
+
     // Find active credential
     let { data: credencial } = await supabase
       .from('credenciales')
@@ -53,11 +63,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .single()
 
-    // If no credential, create one (dates in Argentina local time)
-    if (!credencial) {
-      const todayAR = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
-      const [arYear, arMonth] = todayAR.split('-').map(Number)
-      const fechaVencimiento = new Date(Date.UTC(arYear, arMonth, 0)).toISOString().split('T')[0]
+    // If there is no credential for the current month, create (or renew) one
+    if (!credencial || !esDelMesEnCurso(credencial.fecha_vencimiento)) {
       const numeroCredencial = `CRED-${cleanDni}-${Date.now().toString(36).toUpperCase()}`
 
       const { data: newCred, error: credError } = await supabase

@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CreditCard, Search, Download, Users, Calendar } from 'lucide-react';
+import { CreditCard, Search, Download, RefreshCw } from 'lucide-react';
 import { usePatients } from '@/hooks/usePatients';
 import { useSystemConfig } from '@/hooks/useSystemConfig';
-import { useCreateCredencial, useCredencialByPaciente } from '@/hooks/useCredenciales';
+import { useCreateCredencial, useReissueCredencial, useCredencialByPaciente, isCredencialVigente, getLastDayOfMonth } from '@/hooks/useCredenciales';
 import PatientSelector from '@/components/PatientSelector';
 import { parseLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -117,8 +117,14 @@ const CredencialGenerator: React.FC = () => {
   const { data: systemConfig } = useSystemConfig();
   const { data: existingCredencial } = useCredencialByPaciente(selectedPatientId);
   const createCredencial = useCreateCredencial();
+  const reissueCredencial = useReissueCredencial();
 
   const selectedPatient = patients?.find(p => p.id === selectedPatientId);
+
+  // Only a credential issued for the current month is valid; otherwise it must be renewed.
+  const credencialVigente = existingCredencial && isCredencialVigente(existingCredencial.fecha_vencimiento)
+    ? existingCredencial
+    : null;
 
   const handleDniSubmit = () => {
     if (!dni.trim()) return;
@@ -135,25 +141,40 @@ const CredencialGenerator: React.FC = () => {
   const handleGenerateCredencial = async () => {
     if (!selectedPatient) return;
 
-    // If credential already exists, just show it
-    if (existingCredencial) {
+    // If a credential for the current month already exists, just show it
+    if (credencialVigente) {
       setShowCredencial(true);
       return;
     }
 
-    // Create new credential
+    // Create (or renew) the credential for the current month
     const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const lastDay = new Date(year, month + 1, 0);
     
     await createCredencial.mutateAsync({
       paciente_id: selectedPatient.id,
       numero_credencial: `${selectedPatient.dni}-${Date.now().toString().slice(-4)}`,
       fecha_emision: format(today, 'yyyy-MM-dd'),
-      fecha_vencimiento: format(lastDay, 'yyyy-MM-dd'),
+      fecha_vencimiento: getLastDayOfMonth(today),
     });
     
+    setShowCredencial(true);
+  };
+
+  const handleReissueCredencial = async () => {
+    if (!selectedPatient) return;
+
+    const today = new Date();
+
+    await reissueCredencial.mutateAsync({
+      credencialAnteriorId: credencialVigente?.id,
+      data: {
+        paciente_id: selectedPatient.id,
+        numero_credencial: `${selectedPatient.dni}-${Date.now().toString().slice(-4)}`,
+        fecha_emision: format(today, 'yyyy-MM-dd'),
+        fecha_vencimiento: getLastDayOfMonth(today),
+      },
+    });
+
     setShowCredencial(true);
   };
 
@@ -176,10 +197,10 @@ const CredencialGenerator: React.FC = () => {
     }
   };
 
-  const currentCredencial = existingCredencial || {
+  const currentCredencial = credencialVigente || {
     numero_credencial: selectedPatient ? `${selectedPatient.dni}-${Date.now().toString().slice(-4)}` : '',
     fecha_emision: format(new Date(), 'yyyy-MM-dd'),
-    fecha_vencimiento: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
+    fecha_vencimiento: getLastDayOfMonth(),
   };
 
   return (
@@ -260,8 +281,18 @@ const CredencialGenerator: React.FC = () => {
                 className="flex-1"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                {existingCredencial ? 'Ver Credencial' : 'Generar Credencial'}
+                {credencialVigente ? 'Ver Credencial' : 'Generar Credencial'}
               </Button>
+              {credencialVigente && (
+                <Button
+                  variant="outline"
+                  onClick={handleReissueCredencial}
+                  disabled={!selectedPatient || reissueCredencial.isPending}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Generar nueva
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -297,9 +328,9 @@ const CredencialGenerator: React.FC = () => {
                   </Button>
                 </div>
 
-                {existingCredencial && (
+                {credencialVigente && (
                   <div className="text-sm text-muted-foreground text-center">
-                    Credencial generada el {new Date(existingCredencial.created_at).toLocaleDateString('es-AR')}
+                    Credencial generada el {new Date(credencialVigente.created_at).toLocaleDateString('es-AR')}
                   </div>
                 )}
               </div>
