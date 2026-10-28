@@ -19,6 +19,7 @@ import { RecetarioManagement } from '@/components/RecetarioManagement';
 import FacturacionManagement from '@/components/FacturacionManagement';
 import PadronStatus from '@/components/PadronStatus';
 import PadronSync from '@/components/PadronSync';
+import CoberturaReglasManagement from '@/components/CoberturaReglasManagement';
 import Login from './Login';
 import { Loader2 } from 'lucide-react';
 
@@ -76,6 +77,8 @@ const Index = () => {
         return <NomecladorManagement />;
       case 'authorizations':
         return <AutorizacionManagement />;
+      case 'cobertura-reglas':
+        return <CoberturaReglasManagement />;
       case 'credenciales':
         return <CredencialGenerator />;
       case 'recetarios':

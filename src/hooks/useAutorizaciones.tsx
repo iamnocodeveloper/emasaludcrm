@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentUser } from './useCurrentUser';
 import { AutorizacionPrestacionFormData } from './useAutorizacionPrestaciones';
@@ -230,32 +231,25 @@ export const useCreateAutorizacion = () => {
 
       const { documento, prestaciones, ...dataToInsert } = autorizacionData;
       const { data: authData } = await supabase.auth.getUser();
-      const insertData = {
+
+      const payload = {
         ...dataToInsert,
         documento_url,
         created_by_user_id: authData?.user?.id ?? null,
+        prestaciones: (prestaciones ?? []).map(prestacion => ({
+          prestacion_codigo: prestacion.prestacion_codigo,
+          prestacion_descripcion: prestacion.prestacion_descripcion,
+          cantidad: prestacion.cantidad ?? 1,
+          observaciones: prestacion.observaciones ?? null,
+        })),
       };
 
-      const { data: autorizacion, error } = await supabase
-        .from('autorizaciones')
-        .insert([insertData])
-        .select()
-        .single();
+      const { data: autorizacionId, error } = await supabase.rpc(
+        'crear_autorizacion',
+        { p_payload: payload as unknown as Json }
+      );
 
       if (error) throw error;
-
-      if (prestaciones && prestaciones.length > 0) {
-        const prestacionesData = prestaciones.map(prestacion => ({
-          autorizacion_id: autorizacion.id,
-          ...prestacion
-        }));
-
-        const { error: prestacionesError } = await supabase
-          .from('autorizacion_prestaciones')
-          .insert(prestacionesData);
-
-        if (prestacionesError) throw prestacionesError;
-      }
 
       const { data: createdAutorizacion, error: createdError } = await supabase
         .from('autorizaciones')
@@ -265,7 +259,7 @@ export const useCreateAutorizacion = () => {
           medicos (nombre, apellido, matricula),
           obras_sociales (nombre)
         `)
-        .eq('id', autorizacion.id)
+        .eq('id', autorizacionId as number)
         .single();
 
       if (createdError) throw createdError;
@@ -273,7 +267,7 @@ export const useCreateAutorizacion = () => {
       const { data: createdPrestaciones, error: createdPrestacionesError } = await supabase
         .from('autorizacion_prestaciones')
         .select('id, autorizacion_id, prestacion_codigo, prestacion_descripcion, cantidad, observaciones')
-        .eq('autorizacion_id', autorizacion.id)
+        .eq('autorizacion_id', autorizacionId as number)
         .order('created_at', { ascending: true });
 
       if (createdPrestacionesError) throw createdPrestacionesError;
@@ -305,12 +299,33 @@ export const useCreateAutorizacion = () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización creada",
         description: "La autorización se ha creado exitosamente.",
       });
     },
-    onError: (error: any) => {
+    onError: async (error: any, variables: AutorizacionFormData) => {
+      // El bloqueo revierte la transacción, incluido su log. Se vuelve a validar
+      // fuera de ella para dejar registrado el motivo del rechazo.
+      if ((error?.code === 'P0001' || error?.code === '23514') && variables?.prestaciones) {
+        await Promise.all(
+          variables.prestaciones
+            .filter(prestacion => prestacion.prestacion_codigo)
+            .map(prestacion =>
+              Promise.resolve(
+                supabase.rpc('validar_prestacion', {
+                  p_paciente_id: variables.paciente_id,
+                  p_codigo_practica: prestacion.prestacion_codigo,
+                  p_cantidad: prestacion.cantidad ?? 1,
+                  p_log: true,
+                })
+              ).catch(() => undefined)
+            )
+        );
+      }
+
       toast({
         title: "Error",
         description: `Error al crear autorización: ${error.message}`,
@@ -346,42 +361,32 @@ export const useUpdateAutorizacion = () => {
       }
 
       const { documento, prestaciones, ...dataToUpdate } = data;
-      const updateData = { ...dataToUpdate, ...(documento_url && { documento_url }) };
 
-      const { error } = await supabase
-        .from('autorizaciones')
-        .update(updateData)
-        .eq('id', id);
+      const payload: Record<string, unknown> = { ...dataToUpdate };
+      if (documento_url) payload.documento_url = documento_url;
+      if (prestaciones !== undefined) {
+        payload.prestaciones = prestaciones.map(prestacion => ({
+          prestacion_codigo: prestacion.prestacion_codigo,
+          prestacion_descripcion: prestacion.prestacion_descripcion,
+          cantidad: prestacion.cantidad ?? 1,
+          observaciones: prestacion.observaciones ?? null,
+        }));
+      }
+
+      const { error } = await supabase.rpc('actualizar_autorizacion', {
+        p_id: id,
+        p_payload: payload as unknown as Json,
+      });
 
       if (error) throw error;
-
-      if (prestaciones !== undefined) {
-        const { error: deleteError } = await supabase
-          .from('autorizacion_prestaciones')
-          .delete()
-          .eq('autorizacion_id', id);
-
-        if (deleteError) throw deleteError;
-
-        if (prestaciones.length > 0) {
-          const prestacionesData = prestaciones.map(prestacion => ({
-            autorizacion_id: id,
-            ...prestacion
-          }));
-
-          const { error: prestacionesError } = await supabase
-            .from('autorizacion_prestaciones')
-            .insert(prestacionesData);
-
-          if (prestacionesError) throw prestacionesError;
-        }
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización actualizada",
         description: "Los datos de la autorización se han actualizado exitosamente.",
@@ -419,6 +424,8 @@ export const useDeleteAutorizacion = () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
+      queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización eliminada",
         description: "La autorización se ha eliminado exitosamente.",

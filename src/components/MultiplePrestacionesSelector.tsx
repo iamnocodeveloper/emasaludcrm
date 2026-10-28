@@ -1,13 +1,14 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { AutorizacionPrestacionFormData } from '@/hooks/useAutorizacionPrestaciones';
 import { useNomecladorSearch } from '@/hooks/useNomeclador';
+import { useValidarPrestacion } from '@/hooks/useValidacionPrestacion';
 
 interface SimplePrestacionInputProps {
   index: number;
@@ -32,9 +33,10 @@ const SimplePrestacionInput: React.FC<SimplePrestacionInputProps> = ({
     setShowSuggestions(value.length > 0);
   };
 
-  const handleSuggestionClick = (suggestion: any) => {
-    console.log('Seleccionando prestación:', suggestion.codigo_practica, suggestion.descripcion_practica);
-    
+  const handleSuggestionClick = (suggestion: {
+    codigo_practica: string;
+    descripcion_practica: string;
+  }) => {
     // Limpiar el campo de búsqueda
     setSearchTerm('');
     setShowSuggestions(false);
@@ -79,14 +81,113 @@ const SimplePrestacionInput: React.FC<SimplePrestacionInputProps> = ({
   );
 };
 
+interface ConsumoPrestacionProps {
+  pacienteId?: number | null;
+  prestacion: AutorizacionPrestacionFormData;
+}
+
+const ConsumoPrestacion: React.FC<ConsumoPrestacionProps> = ({ pacienteId, prestacion }) => {
+  const { data, isLoading } = useValidarPrestacion({
+    pacienteId,
+    codigoPractica: prestacion.prestacion_codigo,
+    cantidad: prestacion.cantidad,
+  });
+
+  if (!pacienteId || !prestacion.prestacion_codigo) return null;
+
+  if (isLoading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Verificando cupo disponible...
+      </p>
+    );
+  }
+
+  if (!data) return null;
+
+  if (!data.permitido) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <span>{data.mensaje}</span>
+      </div>
+    );
+  }
+
+  if (data.motivo === 'sin_regla') {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <span>{data.mensaje}</span>
+      </div>
+    );
+  }
+
+  const regla = data.reglas?.[0];
+  const cupoMensual = data.cupo_mensual;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {cupoMensual?.limite !== null && cupoMensual?.limite !== undefined && (
+        <Badge
+          variant={(cupoMensual.consumido ?? 0) >= cupoMensual.limite ? 'destructive' : 'secondary'}
+          className="text-xs"
+        >
+          Cupo mensual: {cupoMensual.consumido ?? 0}/{cupoMensual.limite}
+        </Badge>
+      )}
+      {!regla && <span className="text-xs text-muted-foreground">{data.mensaje}</span>}
+      {regla && (
+        <>
+          <Badge variant="outline" className="text-xs">
+        {regla.grupo_nombre}
+        {regla.ambito === 'solo_mendoza' ? ' · Mendoza' : ''}
+      </Badge>
+      {regla.limite_practica !== null && (
+        <Badge
+          variant={regla.restante_practica === 0 ? 'destructive' : 'secondary'}
+          className="text-xs"
+        >
+          Práctica: {regla.consumido_practica ?? 0}/{regla.limite_practica}
+          {regla.periodo_practica_dias ? ` cada ${regla.periodo_practica_dias} días` : ''}
+        </Badge>
+      )}
+      {regla.limite_grupo !== null && (
+        <Badge
+          variant={regla.restante_grupo === 0 ? 'destructive' : 'secondary'}
+          className="text-xs"
+        >
+          Grupo: {regla.consumido_grupo ?? 0}/{regla.limite_grupo}
+          {regla.periodo_grupo_dias ? ` cada ${regla.periodo_grupo_dias} días` : ''}
+        </Badge>
+      )}
+      {regla.restante_practica !== null && (
+        <span className="text-xs text-muted-foreground">
+          Restante práctica: {regla.restante_practica}
+        </span>
+      )}
+      {regla.restante_grupo !== null && (
+        <span className="text-xs text-muted-foreground">
+          Restante grupo: {regla.restante_grupo}
+        </span>
+      )}
+        </>
+      )}
+    </div>
+  );
+};
+
 interface MultiplePrestacionesSelectorProps {
   prestaciones: AutorizacionPrestacionFormData[];
   onPrestacionesChange: (prestaciones: AutorizacionPrestacionFormData[]) => void;
+  pacienteId?: number | null;
 }
 
 const MultiplePrestacionesSelector: React.FC<MultiplePrestacionesSelectorProps> = ({
   prestaciones,
-  onPrestacionesChange
+  onPrestacionesChange,
+  pacienteId
 }) => {
   const addPrestacion = () => {
     const nuevaPrestacion: AutorizacionPrestacionFormData = {
@@ -103,7 +204,11 @@ const MultiplePrestacionesSelector: React.FC<MultiplePrestacionesSelectorProps> 
     onPrestacionesChange(nuevasPrestaciones);
   };
 
-  const updatePrestacion = (index: number, field: keyof AutorizacionPrestacionFormData, value: any) => {
+  const updatePrestacion = (
+    index: number,
+    field: keyof AutorizacionPrestacionFormData,
+    value: string | number
+  ) => {
     const nuevasPrestaciones = [...prestaciones];
     nuevasPrestaciones[index] = {
       ...nuevasPrestaciones[index],
@@ -167,6 +272,8 @@ const MultiplePrestacionesSelector: React.FC<MultiplePrestacionesSelectorProps> 
                 />
               </div>
             </div>
+
+            <ConsumoPrestacion pacienteId={pacienteId} prestacion={prestacion} />
 
             {prestacion.prestacion_codigo && (
               <div className="space-y-2">

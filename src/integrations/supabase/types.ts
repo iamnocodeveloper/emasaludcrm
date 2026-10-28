@@ -231,6 +231,155 @@ export type Database = {
         }
         Relationships: []
       }
+      cobertura_excepciones: {
+        Row: {
+          activo: boolean
+          cantidad_extra: number
+          codigo_practica: string | null
+          created_at: string
+          grupo_id: number | null
+          id: number
+          justificacion: string
+          numero_expediente: string | null
+          paciente_id: number
+          responsable_id: string
+          responsable_nombre: string | null
+          updated_at: string
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          activo?: boolean
+          cantidad_extra?: number
+          codigo_practica?: string | null
+          created_at?: string
+          grupo_id?: number | null
+          id?: number
+          justificacion: string
+          numero_expediente?: string | null
+          paciente_id: number
+          responsable_id?: string
+          responsable_nombre?: string | null
+          updated_at?: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          activo?: boolean
+          cantidad_extra?: number
+          codigo_practica?: string | null
+          created_at?: string
+          grupo_id?: number | null
+          id?: number
+          justificacion?: string
+          numero_expediente?: string | null
+          paciente_id?: number
+          responsable_id?: string
+          responsable_nombre?: string | null
+          updated_at?: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobertura_excepciones_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "cobertura_grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobertura_excepciones_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobertura_grupos: {
+        Row: {
+          activo: boolean
+          ambito: string
+          codigo: string
+          created_at: string
+          id: number
+          limite_grupo: number | null
+          limite_practica_default: number | null
+          nombre: string
+          periodo_grupo_dias: number | null
+          periodo_practica_default: number | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          ambito?: string
+          codigo: string
+          created_at?: string
+          id?: number
+          limite_grupo?: number | null
+          limite_practica_default?: number | null
+          nombre: string
+          periodo_grupo_dias?: number | null
+          periodo_practica_default?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          ambito?: string
+          codigo?: string
+          created_at?: string
+          id?: number
+          limite_grupo?: number | null
+          limite_practica_default?: number | null
+          nombre?: string
+          periodo_grupo_dias?: number | null
+          periodo_practica_default?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cobertura_practicas: {
+        Row: {
+          activo: boolean
+          codigo_practica: string
+          created_at: string
+          grupo_id: number
+          id: number
+          limite_practica: number | null
+          periodo_practica_dias: number | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo_practica: string
+          created_at?: string
+          grupo_id: number
+          id?: number
+          limite_practica?: number | null
+          periodo_practica_dias?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          codigo_practica?: string
+          created_at?: string
+          grupo_id?: number
+          id?: number
+          limite_practica?: number | null
+          periodo_practica_dias?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobertura_practicas_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "cobertura_grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comprobantes_particulares: {
         Row: {
           autorizacion_id: number
@@ -1253,14 +1402,73 @@ export type Database = {
         }
         Relationships: []
       }
+      validaciones_prestacion_log: {
+        Row: {
+          cantidad: number
+          codigo_practica: string
+          created_at: string
+          detalle: Json
+          id: number
+          motivo: string | null
+          paciente_id: number
+          permitido: boolean
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          codigo_practica: string
+          created_at?: string
+          detalle?: Json
+          id?: number
+          motivo?: string | null
+          paciente_id: number
+          permitido: boolean
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          codigo_practica?: string
+          created_at?: string
+          detalle?: Json
+          id?: number
+          motivo?: string | null
+          paciente_id?: number
+          permitido?: boolean
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      actualizar_autorizacion: {
+        Args: { p_id: number; p_payload: Json }
+        Returns: number
+      }
       change_user_password: {
         Args: { new_password: string; target_user_id: string }
         Returns: Json
+      }
+      consumo_autorizaciones: {
+        Args: { p_desde: string; p_hasta: string; p_paciente_id: number }
+        Returns: number
+      }
+      consumo_prestaciones: {
+        Args: {
+          p_codigo_practica?: string | null
+          p_desde: string
+          p_excluir_prestacion_id?: number | null
+          p_grupo_id?: number | null
+          p_hasta: string
+          p_paciente_id: number
+        }
+        Returns: number
+      }
+      crear_autorizacion: {
+        Args: { p_payload: Json }
+        Returns: number
       }
       create_audit_log: {
         Args: {
@@ -1271,6 +1479,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      excepcion_extra: {
+        Args: {
+          p_codigo_practica: string | null
+          p_fecha: string
+          p_grupo_id: number | null
+          p_paciente_id: number
+        }
+        Returns: number
+      }
+      excepcion_extra_global: {
+        Args: { p_fecha: string; p_paciente_id: number }
+        Returns: number
+      }
       get_next_recetario_number: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -1278,6 +1499,35 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      paciente_ids_por_dni: {
+        Args: { p_paciente_id: number }
+        Returns: number[]
+      }
+      periodo_desde: {
+        Args: { p_dias: number; p_fecha: string }
+        Returns: string
+      }
+      periodo_hasta: {
+        Args: { p_dias: number; p_fecha: string }
+        Returns: string
+      }
+      resumen_consumos_paciente: {
+        Args: { p_fecha?: string; p_paciente_id: number }
+        Returns: Json
+      }
+      validar_prestacion: {
+        Args: {
+          p_autorizacion_id?: number | null
+          p_cantidad?: number
+          p_codigo_practica: string
+          p_dni?: string | null
+          p_excluir_prestacion_id?: number | null
+          p_fecha?: string
+          p_log?: boolean
+          p_paciente_id: number
+        }
+        Returns: Json
       }
     }
     Enums: {

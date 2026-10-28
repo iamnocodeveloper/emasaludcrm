@@ -407,6 +407,7 @@ const AutorizacionForm: React.FC<AutorizacionFormProps> = ({
               <MultiplePrestacionesSelector
                 prestaciones={prestaciones}
                 onPrestacionesChange={setPrestaciones}
+                pacienteId={watchedValues.paciente_id || preselectedPatient?.id}
               />
             ) : (
               <div className="space-y-2">
