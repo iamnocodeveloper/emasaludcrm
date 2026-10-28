@@ -158,7 +158,9 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- Caso 4: el mismo DNI con dos registros no duplica ni fragmenta el cupo.
+-- Caso 4: un registro histórico con el mismo DNI no duplica ni fragmenta el cupo.
+-- La base ya impide dos registros ACTIVOS con el mismo DNI
+-- (índice parcial unique_active_patient_dni), así que se prueba con uno inactivo.
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -169,7 +171,7 @@ DECLARE
   v_res    jsonb;
 BEGIN
   INSERT INTO public.pacientes (dni, nombre, apellido, activo, estado_padron, provincia)
-  VALUES ('99000001', 'TEST', 'TOPES DUPLICADO', true, 'Activo', 'Mendoza')
+  VALUES ('99000001', 'TEST', 'TOPES HISTORICO', false, 'BAJA', 'Mendoza')
   RETURNING id INTO v_pac2;
 
   v_ids := public.paciente_ids_por_dni(v_pac);
@@ -184,12 +186,13 @@ BEGIN
     'T9901', NULL, NULL);
 
   IF v_consumo <> 2 THEN
-    RAISE EXCEPTION 'CASO 4 FALLO: el consumo del registro duplicado debería ser 2, fue %.', v_consumo;
+    RAISE EXCEPTION 'CASO 4 FALLO: el consumo del registro histórico debería ser 2, fue %.', v_consumo;
   END IF;
 
+  -- El registro inactivo no puede autorizar: lo frena el padrón.
   v_res := public.validar_prestacion(v_pac2, 'T9901', 1, CURRENT_DATE, NULL, NULL, NULL, false);
   IF (v_res ->> 'permitido')::boolean IS DISTINCT FROM false THEN
-    RAISE EXCEPTION 'CASO 4 FALLO: el duplicado de DNI no debe habilitar cupo nuevo. %', v_res;
+    RAISE EXCEPTION 'CASO 4 FALLO: el registro histórico inactivo no debe autorizar. %', v_res;
   END IF;
 END $$;
 
