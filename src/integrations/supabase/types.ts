@@ -1479,6 +1479,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      cupo_mensual_paciente: {
+        Args: { p_fecha?: string; p_paciente_id: number }
+        Returns: Json
+      }
       excepcion_extra: {
         Args: {
           p_codigo_practica: string | null

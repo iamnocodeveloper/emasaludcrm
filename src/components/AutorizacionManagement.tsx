@@ -16,12 +16,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAutorizacionesInfinite, useAutorizacionesPaciente, useUpdateAutorizacion, useDeleteAutorizacion, useCreateAutorizacion, AUTORIZACIONES_PAGE_SIZE } from '@/hooks/useAutorizaciones';
 import { usePatientSearch } from '@/hooks/usePatientSearch';
-import { useResumenConsumos } from '@/hooks/useValidacionPrestacion';
 
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import AutorizacionForm from './AutorizacionForm';
 import AutorizacionPDF from './AutorizacionPDF';
-import { Plus, Edit, Trash2, Search, AlertTriangle, User, Activity, Copy } from 'lucide-react';
+import ConsumoPacientePanel from './ConsumoPacientePanel';
+import { Plus, Edit, Trash2, Search, AlertTriangle, User, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +47,6 @@ const AutorizacionManagement = () => {
   const isLoading = selectedPatientId ? isLoadingPaciente : isLoadingList;
   // Skip search while a patient is already selected to avoid unnecessary requests
   const { data: patients = [] } = usePatientSearch(selectedPatientId ? '' : patientSearchTerm, 8, 400);
-  const { data: resumenConsumos = [] } = useResumenConsumos(selectedPatientId);
 
   const { data: currentUser } = useCurrentUser();
   const updateAutorizacion = useUpdateAutorizacion();
@@ -146,19 +145,6 @@ const AutorizacionManagement = () => {
     return true;
   };
 
-  // Grupos con consumo registrado, ordenados por porcentaje utilizado.
-  const consumosDestacados = React.useMemo(() => {
-    return resumenConsumos
-      .filter(c => c.limite_grupo !== null && (c.consumido_grupo ?? 0) > 0)
-      .sort((a, b) => {
-        const usoA = (a.consumido_grupo ?? 0) / (a.limite_grupo || 1);
-        const usoB = (b.consumido_grupo ?? 0) / (b.limite_grupo || 1);
-        return usoB - usoA;
-      })
-      .slice(0, 4);
-  }, [resumenConsumos]);
-
-
   // Filter autorizaciones - if patient selected, show only theirs
   const filteredAutorizaciones = autorizaciones?.filter(autorizacion => {
     if (selectedPatientId && autorizacion.paciente_id !== selectedPatientId) return false;
@@ -251,7 +237,7 @@ const AutorizacionManagement = () => {
       {selectedPatient && (
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Patient Info */}
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Paciente</p>
@@ -266,18 +252,6 @@ const AutorizacionManagement = () => {
                 {selectedPatient.numero_afiliado && (
                   <p className="text-sm text-muted-foreground">N° Afiliado: {selectedPatient.numero_afiliado}</p>
                 )}
-              </div>
-
-              {/* Consultas del mes (informativo: el control real es por práctica y grupo) */}
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Consultas del mes</p>
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  <p className="text-lg font-bold">
-                    {selectedPatient.consultas_mes_actual ?? 0} / {selectedPatient.consultas_maximas ?? '∞'}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">Informativo</p>
               </div>
 
               {/* Estado Padrón */}
@@ -315,29 +289,8 @@ const AutorizacionManagement = () => {
             )}
 
 
-            {/* Consumo real por grupo (motor de topes) */}
-            {consumosDestacados.length > 0 && (
-              <div className="mt-4 border-t pt-4 space-y-2">
-                <p className="text-sm font-medium">Consumo por grupo</p>
-                {consumosDestacados.map((consumo) => {
-                  const usado = consumo.consumido_grupo ?? 0;
-                  const limite = consumo.limite_grupo ?? 0;
-                  const agotado = limite > 0 && usado >= limite;
-                  return (
-                    <div key={consumo.grupo_id} className="flex items-center justify-between text-sm">
-                      <span>
-                        {consumo.grupo_nombre}
-                        {consumo.ambito === 'solo_mendoza' ? ' (Mendoza)' : ''}
-                      </span>
-                      <span className={agotado ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
-                        {usado} / {limite}
-                        {consumo.periodo_grupo_dias ? ` cada ${consumo.periodo_grupo_dias} días` : ''}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* Consumo real del paciente (motor de topes) */}
+            <ConsumoPacientePanel pacienteId={selectedPatientId} className="mt-4" />
 
             {/* New Authorization Button */}
             <div className="mt-4">

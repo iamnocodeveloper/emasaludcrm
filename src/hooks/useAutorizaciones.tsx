@@ -300,6 +300,7 @@ export const useCreateAutorizacion = () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['cupo-mensual'] });
       queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización creada",
@@ -386,6 +387,7 @@ export const useUpdateAutorizacion = () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['autorizacion-prestaciones'] });
       queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['cupo-mensual'] });
       queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización actualizada",
@@ -425,6 +427,7 @@ export const useDeleteAutorizacion = () => {
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['autorizaciones-paciente'] });
       queryClient.invalidateQueries({ queryKey: ['resumen-consumos'] });
+      queryClient.invalidateQueries({ queryKey: ['cupo-mensual'] });
       queryClient.invalidateQueries({ queryKey: ['validacion-prestacion'] });
       toast({
         title: "Autorización eliminada",

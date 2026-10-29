@@ -63,6 +63,15 @@ export interface ResumenConsumo {
   restante_grupo: number | null;
 }
 
+export interface CupoMensualPaciente {
+  limite: number | null;
+  consumido: number;
+  excepcion: number;
+  sin_limite: boolean;
+  desde: string;
+  hasta: string;
+}
+
 interface ValidarParams {
   pacienteId?: number | null;
   codigoPractica?: string;
@@ -131,3 +140,25 @@ export const useResumenConsumos = (
     },
   });
 };
+
+export const useCupoMensualPaciente = (
+  pacienteId?: number | null,
+  fecha?: string
+) => {
+  return useQuery({
+    queryKey: ['cupo-mensual', pacienteId, fecha ?? 'hoy'],
+    enabled: !!pacienteId,
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async (): Promise<CupoMensualPaciente> => {
+      const { data, error } = await supabase.rpc('cupo_mensual_paciente', {
+        p_paciente_id: pacienteId as number,
+        p_fecha: fecha,
+      });
+
+      if (error) throw error;
+      return data as unknown as CupoMensualPaciente;
+    },
+  });
+};
+

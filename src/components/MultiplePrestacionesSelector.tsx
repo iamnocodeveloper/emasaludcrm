@@ -9,6 +9,7 @@ import { Plus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { AutorizacionPrestacionFormData } from '@/hooks/useAutorizacionPrestaciones';
 import { useNomecladorSearch } from '@/hooks/useNomeclador';
 import { useValidarPrestacion } from '@/hooks/useValidacionPrestacion';
+import { BarraConsumo } from './ConsumoPacientePanel';
 
 interface SimplePrestacionInputProps {
   index: number;
@@ -128,50 +129,54 @@ const ConsumoPrestacion: React.FC<ConsumoPrestacionProps> = ({ pacienteId, prest
   const cupoMensual = data.cupo_mensual;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
       {cupoMensual?.limite !== null && cupoMensual?.limite !== undefined && (
-        <Badge
-          variant={(cupoMensual.consumido ?? 0) >= cupoMensual.limite ? 'destructive' : 'secondary'}
-          className="text-xs"
-        >
-          Cupo mensual: {cupoMensual.consumido ?? 0}/{cupoMensual.limite}
-        </Badge>
+        cupoMensual.limite >= 999 ? (
+          <Badge variant="secondary" className="text-xs">
+            Cupo mensual de consultas: sin límite
+          </Badge>
+        ) : (
+          <BarraConsumo
+            etiqueta="Cupo mensual de consultas"
+            usado={cupoMensual.consumido ?? 0}
+            limite={cupoMensual.limite}
+            extra={cupoMensual.excepcion ?? 0}
+          />
+        )
       )}
+
       {!regla && <span className="text-xs text-muted-foreground">{data.mensaje}</span>}
+
       {regla && (
         <>
           <Badge variant="outline" className="text-xs">
-        {regla.grupo_nombre}
-        {regla.ambito === 'solo_mendoza' ? ' · Mendoza' : ''}
-      </Badge>
-      {regla.limite_practica !== null && (
-        <Badge
-          variant={regla.restante_practica === 0 ? 'destructive' : 'secondary'}
-          className="text-xs"
-        >
-          Práctica: {regla.consumido_practica ?? 0}/{regla.limite_practica}
-          {regla.periodo_practica_dias ? ` cada ${regla.periodo_practica_dias} días` : ''}
-        </Badge>
-      )}
-      {regla.limite_grupo !== null && (
-        <Badge
-          variant={regla.restante_grupo === 0 ? 'destructive' : 'secondary'}
-          className="text-xs"
-        >
-          Grupo: {regla.consumido_grupo ?? 0}/{regla.limite_grupo}
-          {regla.periodo_grupo_dias ? ` cada ${regla.periodo_grupo_dias} días` : ''}
-        </Badge>
-      )}
-      {regla.restante_practica !== null && (
-        <span className="text-xs text-muted-foreground">
-          Restante práctica: {regla.restante_practica}
-        </span>
-      )}
-      {regla.restante_grupo !== null && (
-        <span className="text-xs text-muted-foreground">
-          Restante grupo: {regla.restante_grupo}
-        </span>
-      )}
+            {regla.grupo_nombre}
+            {regla.ambito === 'solo_mendoza' ? ' · Mendoza' : ''}
+          </Badge>
+
+          {regla.limite_practica !== null && (
+            <BarraConsumo
+              etiqueta={`Práctica ${prestacion.prestacion_codigo}`}
+              usado={regla.consumido_practica ?? 0}
+              limite={regla.limite_practica}
+              periodo={regla.periodo_practica_dias}
+              desde={regla.desde_practica}
+              hasta={regla.hasta_practica}
+              extra={regla.excepcion_practica}
+            />
+          )}
+
+          {regla.limite_grupo !== null && (
+            <BarraConsumo
+              etiqueta="Tope del grupo"
+              usado={regla.consumido_grupo ?? 0}
+              limite={regla.limite_grupo}
+              periodo={regla.periodo_grupo_dias}
+              desde={regla.desde_grupo}
+              hasta={regla.hasta_grupo}
+              extra={regla.excepcion_grupo}
+            />
+          )}
         </>
       )}
     </div>

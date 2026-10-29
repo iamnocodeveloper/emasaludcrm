@@ -412,6 +412,104 @@ BEGIN
   END IF;
 END $$;
 
+-- ---------------------------------------------------------------------------
+-- Caso 12: el cupo mensual cuenta CONSULTAS, no laboratorios ni estudios.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_pac integer;
+  v_res jsonb;
+BEGIN
+  INSERT INTO public.pacientes (dni, nombre, apellido, activo, estado_padron, consultas_maximas)
+  VALUES ('99000007', 'TEST', 'CUPO CONSULTAS', true, 'Activo', 1)
+  RETURNING id INTO v_pac;
+
+  -- Un laboratorio no debe consumir el cupo de consultas.
+  PERFORM public.crear_autorizacion(jsonb_build_object(
+    'paciente_id', v_pac,
+    'tipo_autorizacion', 'laboratorio',
+    'estado', 'pendiente',
+    'prestaciones', jsonb_build_array(jsonb_build_object(
+      'prestacion_codigo', 'T9999',
+      'prestacion_descripcion', 'LABORATORIO TEST',
+      'cantidad', 1))
+  ));
+
+  v_res := public.validar_prestacion(v_pac, 'T9999', 1, CURRENT_DATE, NULL, NULL, NULL, false);
+  IF COALESCE((v_res -> 'cupo_mensual' ->> 'consumido')::integer, -1) <> 0 THEN
+    RAISE EXCEPTION 'CASO 12 FALLO: el laboratorio no debe consumir cupo de consultas. %', v_res;
+  END IF;
+
+  -- La primera consulta consume el único lugar disponible.
+  PERFORM public.crear_autorizacion(jsonb_build_object(
+    'paciente_id', v_pac,
+    'tipo_autorizacion', 'consulta',
+    'estado', 'pendiente',
+    'prestaciones', jsonb_build_array(jsonb_build_object(
+      'prestacion_codigo', 'T9999',
+      'prestacion_descripcion', 'CONSULTA TEST',
+      'cantidad', 1))
+  ));
+
+  v_res := public.validar_prestacion(v_pac, 'T9999', 1, CURRENT_DATE, NULL, NULL, NULL, false);
+  IF COALESCE((v_res -> 'cupo_mensual' ->> 'consumido')::integer, -1) <> 1 THEN
+    RAISE EXCEPTION 'CASO 12 FALLO: la consulta debe consumir el cupo mensual. %', v_res;
+  END IF;
+
+  -- Una segunda consulta en el mismo mes se bloquea.
+  BEGIN
+    PERFORM public.crear_autorizacion(jsonb_build_object(
+      'paciente_id', v_pac,
+      'tipo_autorizacion', 'consulta',
+      'estado', 'pendiente',
+      'prestaciones', jsonb_build_array(jsonb_build_object(
+        'prestacion_codigo', 'T9999',
+        'prestacion_descripcion', 'CONSULTA TEST',
+        'cantidad', 1))
+    ));
+    RAISE EXCEPTION 'CASO 12 FALLO: la segunda consulta debería bloquearse.';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+  END;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- Caso 13: una autorización retroactiva se valida contra SU mes, no contra el
+-- mes en curso.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_pac integer;
+BEGIN
+  INSERT INTO public.pacientes (dni, nombre, apellido, activo, estado_padron, consultas_maximas)
+  VALUES ('99000008', 'TEST', 'RETROACTIVA', true, 'Activo', 1)
+  RETURNING id INTO v_pac;
+
+  -- Ocupa el cupo del mes en curso.
+  PERFORM public.crear_autorizacion(jsonb_build_object(
+    'paciente_id', v_pac,
+    'tipo_autorizacion', 'consulta',
+    'estado', 'pendiente',
+    'prestaciones', jsonb_build_array(jsonb_build_object(
+      'prestacion_codigo', 'T9999',
+      'prestacion_descripcion', 'CONSULTA TEST',
+      'cantidad', 1))
+  ));
+
+  -- Una consulta de dos meses atrás no debe bloquearse por el mes en curso.
+  PERFORM public.crear_autorizacion(jsonb_build_object(
+    'paciente_id', v_pac,
+    'tipo_autorizacion', 'consulta',
+    'estado', 'pendiente',
+    'fecha_solicitud', (CURRENT_DATE - interval '2 months')::date,
+    'prestaciones', jsonb_build_array(jsonb_build_object(
+      'prestacion_codigo', 'T9999',
+      'prestacion_descripcion', 'CONSULTA TEST RETROACTIVA',
+      'cantidad', 1))
+  ));
+END $$;
+
 ROLLBACK;
 
 -- Nota: la concurrencia (dos sesiones autorizando a la vez) se valida con

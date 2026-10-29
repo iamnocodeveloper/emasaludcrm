@@ -18,6 +18,7 @@ import DiagnosticoForm from './DiagnosticoForm';
 import PatientImport from './PatientImport';
 import DeletePatientsByObraSocialDialog from './DeletePatientsByObraSocialDialog';
 import UpdateConsultasMaximasDialog from './UpdateConsultasMaximasDialog';
+import ConsumoPacientePanel from './ConsumoPacientePanel';
 
 const PatientManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -615,25 +616,7 @@ const PatientManagement = () => {
                     </div>
                   )}
 
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Consultas Este Mes</h4>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-blue-600">
-                        {selectedPatient.consultas_mes_actual}
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        de {selectedPatient.consultas_maximas} permitidas
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ 
-                          width: `${(selectedPatient.consultas_mes_actual / selectedPatient.consultas_maximas) * 100}%` 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
+                  <ConsumoPacientePanel pacienteId={selectedPatient.id} />
 
                   <div className="space-y-2">
                     <Button 
