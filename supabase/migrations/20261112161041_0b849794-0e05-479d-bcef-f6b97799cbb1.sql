@@ -1,0 +1,1 @@
+UPDATE public.obras_sociales SET activa=true, updated_at=now() WHERE id=12 AND codigo='OSTEP' AND nombre='OSTEP';
