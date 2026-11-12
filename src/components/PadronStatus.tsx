@@ -10,6 +10,7 @@ export const OBRAS_SOCIALES_OFICIALES = [
   { id: 7, nombre: 'OSPSIP' },
   { id: 8, nombre: 'OSCEARA' },
   { id: 9, nombre: 'OSCE' },
+  { id: 12, nombre: 'OSTEP' },
   { id: 13, nombre: 'OSPIV' },
   { id: 14, nombre: 'OSPE' },
 ];
