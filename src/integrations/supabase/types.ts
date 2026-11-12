@@ -1447,6 +1447,10 @@ export type Database = {
         Args: { p_id: number; p_payload: Json }
         Returns: number
       }
+      autorizacion_consume_cupo: {
+        Args: { p_activa: boolean; p_estado: string }
+        Returns: boolean
+      }
       change_user_password: {
         Args: { new_password: string; target_user_id: string }
         Returns: Json
@@ -1457,19 +1461,16 @@ export type Database = {
       }
       consumo_prestaciones: {
         Args: {
-          p_codigo_practica?: string | null
+          p_codigo_practica?: string
           p_desde: string
-          p_excluir_prestacion_id?: number | null
-          p_grupo_id?: number | null
+          p_excluir_prestacion_id?: number
+          p_grupo_id?: number
           p_hasta: string
           p_paciente_id: number
         }
         Returns: number
       }
-      crear_autorizacion: {
-        Args: { p_payload: Json }
-        Returns: number
-      }
+      crear_autorizacion: { Args: { p_payload: Json }; Returns: number }
       create_audit_log: {
         Args: {
           p_action: string
@@ -1483,11 +1484,12 @@ export type Database = {
         Args: { p_fecha?: string; p_paciente_id: number }
         Returns: Json
       }
+      es_usuario_interno: { Args: never; Returns: boolean }
       excepcion_extra: {
         Args: {
-          p_codigo_practica: string | null
+          p_codigo_practica: string
           p_fecha: string
-          p_grupo_id: number | null
+          p_grupo_id: number
           p_paciente_id: number
         }
         Returns: number
@@ -1495,6 +1497,10 @@ export type Database = {
       excepcion_extra_global: {
         Args: { p_fecha: string; p_paciente_id: number }
         Returns: number
+      }
+      fecha_efectiva: {
+        Args: { p_created_at: string; p_fecha: string }
+        Returns: string
       }
       get_next_recetario_number: { Args: never; Returns: number }
       has_role: {
@@ -1516,17 +1522,27 @@ export type Database = {
         Args: { p_dias: number; p_fecha: string }
         Returns: string
       }
+      registrar_validacion: {
+        Args: {
+          p_cantidad: number
+          p_codigo_practica: string
+          p_log: boolean
+          p_paciente_id: number
+          p_resultado: Json
+        }
+        Returns: undefined
+      }
       resumen_consumos_paciente: {
         Args: { p_fecha?: string; p_paciente_id: number }
         Returns: Json
       }
       validar_prestacion: {
         Args: {
-          p_autorizacion_id?: number | null
+          p_autorizacion_id?: number
           p_cantidad?: number
           p_codigo_practica: string
-          p_dni?: string | null
-          p_excluir_prestacion_id?: number | null
+          p_dni?: string
+          p_excluir_prestacion_id?: number
           p_fecha?: string
           p_log?: boolean
           p_paciente_id: number
