@@ -1,0 +1,1 @@
+UPDATE public.pacientes SET obra_social_id=8, estado_padron='Activo', updated_at=now() WHERE activo=true AND obra_social_id=9 AND (id,dni) IN ((2548,'24234867'),(2549,'29694479'),(12220,'47287000'),(12224,'49102014'),(2553,'51368323'),(2552,'53357828'),(2551,'56214052'));
