@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
           } else {
             const { error } = await supabase.from("pacientes").insert({
               ...payload,
-              consultas_maximas: r.consultas_maximas ?? 999,
+              consultas_maximas: 2,
               consultas_mes_actual: 0,
             });
             if (error) result.errores.push(`INSERT ${r.dni ?? variants[0]}: ${error.message}`);

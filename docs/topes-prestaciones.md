@@ -1,5 +1,11 @@
 # Topes de prestaciones — documentación operativa
 
+## Regla vigente desde 2026-11-19
+
+Todas las consultas y prácticas comparten un cupo de **2 prestaciones por paciente por mes calendario**, incluso sin grupo. Las cantidades de cada línea consumen el cupo; las autorizaciones sin líneas consumen su cantidad legacy o una unidad. Pendientes y aprobadas activas consumen, rechazadas/inactivas no. Las excepciones globales vigentes amplían el cupo. Los valores históricos 5/999 ya no eximen del límite.
+
+`consumo_mensual_total` alimenta `validar_prestacion` y `cupo_mensual_paciente`. Los triggers bloquean cambios concurrentes por identidad y verifican el estado final de la transacción, incluidos cambios de fecha/paciente y altas sin líneas. Los topes específicos siguen siendo controles adicionales. La sección histórica siguiente describe la regla anterior y **no debe usarse como configuración vigente**.
+
 Documenta el motor de topes, el caso reportado del **DNI 34920351** y los cambios
 aplicados el **2026-10-29**.
 

@@ -154,7 +154,7 @@ const ConsumoPacientePanel: React.FC<ConsumoPacientePanelProps> = ({ pacienteId,
               ) : (
                 <CheckCircle2 className={cn('h-4 w-4', colorTexto(cupoPct))} />
               )}
-              <span className="font-medium">Cupo mensual de consultas</span>
+              <span className="font-medium">Cupo mensual de prestaciones</span>
             </span>
             <span className={cn('font-semibold tabular-nums', sinLimite ? 'text-muted-foreground' : colorTexto(cupoPct))}>
               {cupo?.consumido ?? 0} / {sinLimite ? '∞' : (cupo?.limite ?? 0) + (cupo?.excepcion ?? 0)}
@@ -186,7 +186,7 @@ const ConsumoPacientePanel: React.FC<ConsumoPacientePanelProps> = ({ pacienteId,
           </div>
           {(cupo?.excepcion ?? 0) > 0 && (
             <p className="text-xs text-muted-foreground">
-              Incluye {cupo?.excepcion} consultas por excepción autorizada.
+              Incluye {cupo?.excepcion} prestaciones por excepción autorizada.
             </p>
           )}
         </div>

@@ -88,7 +88,7 @@ interface ConsumoPrestacionProps {
 }
 
 const ConsumoPrestacion: React.FC<ConsumoPrestacionProps> = ({ pacienteId, prestacion }) => {
-  const { data, isLoading } = useValidarPrestacion({
+  const { data, isLoading, isError } = useValidarPrestacion({
     pacienteId,
     codigoPractica: prestacion.prestacion_codigo,
     cantidad: prestacion.cantidad,
@@ -105,39 +105,36 @@ const ConsumoPrestacion: React.FC<ConsumoPrestacionProps> = ({ pacienteId, prest
     );
   }
 
-  if (!data) return null;
-
-  if (!data.permitido) {
+  if (isError) {
     return (
       <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
         <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-        <span>{data.mensaje}</span>
+        <span>No se pudo verificar el cupo mensual.</span>
       </div>
     );
   }
 
-  if (data.motivo === 'sin_regla') {
-    return (
-      <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-        <span>{data.mensaje}</span>
-      </div>
-    );
-  }
+  if (!data) return null;
 
   const regla = data.reglas?.[0];
   const cupoMensual = data.cupo_mensual;
 
   return (
     <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
+      {!data.permitido && (
+        <div className="flex items-start gap-2 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{data.mensaje}</span>
+        </div>
+      )}
       {cupoMensual?.limite !== null && cupoMensual?.limite !== undefined && (
         cupoMensual.limite >= 999 ? (
           <Badge variant="secondary" className="text-xs">
-            Cupo mensual de consultas: sin límite
+            Cupo mensual de prestaciones: sin límite
           </Badge>
         ) : (
           <BarraConsumo
-            etiqueta="Cupo mensual de consultas"
+            etiqueta="Cupo mensual de prestaciones"
             usado={cupoMensual.consumido ?? 0}
             limite={cupoMensual.limite}
             extra={cupoMensual.excepcion ?? 0}

@@ -561,8 +561,8 @@ const CoberturaReglasManagement: React.FC = () => {
                 {gruposSinPracticas} de {grupos.length} grupos todavía no tienen prácticas asignadas.
               </p>
               <p>
-                Las prácticas sin grupo se autorizan sin control de cupo. Asignálas en la pestaña
-                «Prácticas» para que los topes se apliquen.
+                Todas las prácticas tienen un cupo compartido de 2 prestaciones por paciente al mes,
+                incluso sin grupo. La pestaña «Prácticas» permite asignar topes adicionales.
               </p>
             </div>
           </CardContent>
