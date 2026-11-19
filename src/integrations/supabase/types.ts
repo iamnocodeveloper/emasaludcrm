@@ -1459,6 +1459,16 @@ export type Database = {
         Args: { p_desde: string; p_hasta: string; p_paciente_id: number }
         Returns: number
       }
+      consumo_mensual_total: {
+        Args: {
+          p_autorizacion_vacia_id?: number
+          p_desde: string
+          p_excluir_prestacion_id?: number
+          p_hasta: string
+          p_paciente_id: number
+        }
+        Returns: number
+      }
       consumo_prestaciones: {
         Args: {
           p_codigo_practica?: string
