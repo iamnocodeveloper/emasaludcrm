@@ -1,4 +1,5 @@
 # Validación de prestaciones
+- [ ] Aplicar y probar cupo compartido de 2 prestaciones mensuales para todas las prácticas, mostrar consumidas/restantes y quitar aviso de autorización sin control.
 - [ ] Centralizar validación DNI/ID, cupos mensuales y control concurrente en la base.
 - [ ] Configurar topes por práctica/grupo y excepciones exclusivas de administradores.
 - [x] Mostrar consumidas/restantes y actualizar inmediatamente después de emitir.
